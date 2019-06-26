@@ -15,4 +15,4 @@ Separate required documents that were uploaded included:
 
 Request submitted on 24-Jun-2019. 
 
-Request accepted on ...
+Request accepted on 25-Jun-2019.
