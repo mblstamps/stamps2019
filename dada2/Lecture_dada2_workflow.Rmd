@@ -1,0 +1,441 @@
+---
+title: "DADA2 Tutorial: STAMPS 2019"
+output: slidy_presentation
+---
+
+## Processing marker-gene data with...
+
+<center>
+![](media/DADA2_Logo_640.png)
+</center>
+
+Important resources:
+
+- The [DADA2 website](https://benjjneb.github.io)
+- The [DADA2 tutorial workflow](https://benjjneb.github.io/dada2/tutorial.html)
+- The [DADA2 Issues forum](https://github.com/benjjneb/dada2/issues)
+
+## The DADA2 Workflow
+
+1. Preprocessing
+2. Filter and Trim
+3. Learn Error Rates
+4. Denoise/Sample Inference
+5. Merge (if paired-end)
+6. Remove Chimeras
+7. Assign Taxonomy
+
+Throughout: Sanity checks!
+
+## Preprocessing, Filtering and Trimming
+
+## Preprocessing
+
+**This workflow assumes that your sequencing data meets certain criteria:**
+
+- Samples have been demultiplexed, i.e. split into individual per-sample fastq files.
+- Non-biological nucleotides have been removed, e.g. primers, adapters, linkers, etc.
+- If paired-end sequencing data, the forward and reverse fastq files contain reads in matched order.
+
+See [the DADA2 FAQ](https://benjjneb.github.io/dada2/faq.html) for tips to deal with non-demultiplexed files and primer removal.
+
+## Load package and set path
+
+Load the `dada2` package. If you don't already it, see the [dada2 installation instructions](dada-installation.html):
+```{r libraries, message=FALSE, warning=FALSE}
+library(dada2); packageVersion("dada2")
+library(ggplot2); packageVersion("ggplot2")
+```
+
+Set the path to the fastq files:
+```{r path}
+path <- "data/fastqs"
+head(list.files(path))
+```
+
+## Forward, Reverse, Sample Names
+
+Get matched lists of the forward and reverse fastq.gz files:
+```{r filenames}
+# Forward and reverse fastq filenames have format: SAMPLENAME_R1.fastq.gz and SAMPLENAME_R2.fastq.gz
+fnFs <- sort(list.files(path, pattern="_R1.fastq.gz", full.names = TRUE))
+fnRs <- sort(list.files(path, pattern="_R2.fastq.gz", full.names = TRUE))
+fnFs[[1]]; fnRs[[1]]
+```
+
+Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq.gz
+```{r sample.names}
+sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
+head(sample.names)
+```
+
+## Check the amplicon design
+
+We are using the 515F/806R primer set. The primers are not sequenced. The sequencing technology is 2x250 paired end Illumina.
+
+<center>
+![](media/amplicon_schematic.png)
+</center>
+
+**What does this mean for later? Artifacts? Trimming?**
+
+## What is your amplicon design?
+
+coi? trnL? amoA? ITS1? ITS2? cpn60? 18S? ...
+16S: v1v2? v1v3? v4? v3v4? v4v5? ...
+
+How long is it? Length variation?
+
+Did you sequence your primers? Are you sure?
+
+## Forward quality profiles: Truncate where?
+
+```{r plotqF}
+plotQualityProfile(fnFs[c(1,11)])
+```
+
+## Reverse quality profiles: Truncate where?
+
+```{r plotqR}
+plotQualityProfile(fnRs[c(2,12)])
+```
+
+## Filter and trim
+
+Assign filenames for the filtered fastq.gz in the filtered/ subdirectory.
+```{r filt-names}
+filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
+filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
+```
+
+The critical parameters we chose are the truncation lengths of **240** (forward) and **170** (reverse). *Why did we choose these values?*
+
+```{r filter, message=FALSE, warning=FALSE}
+out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, 
+                     truncLen=c(240,160), maxEE=c(2,2), # maxEE=2 is the default
+                     compress=TRUE, multithread=FALSE) # Set multithread=TRUE to use all cores
+```
+
+In most cases, the key quality filtering parameter is `maxEE`, which sets the maximum number of expected errors allowed in each read. This has been shown to be a better quality filter than an average quality score filter.
+
+## Quality filtering options
+
+- `maxEE`: Maximum expected errors, usually the only quality filter needed.
+- `truncQ`: Truncate at first occurrence of this quality score.
+- `maxLen`: Remove sequences greater than this length (mostly for pyrosequencing).
+- `minLen`: Remove sequences less than this length.
+- `maxN`: Remove sequences with more than this many Ns. `dada2` requires no Ns, so `maxN=0` by default.
+- `rm.lowcomplex`: Remove reads with complexity less than this value.
+
+Usually `maxEE` is enough, but for non-Illumina sequencing technologies, or less standard setups, the other options can be useful as well. Remember that help is your friend! `?filterAndTrim`
+
+## SANITY CHECK: Filtering Stats
+
+```{r filter-stats}
+head(out)
+```
+
+- What fraction of reads were kept?
+- Was that fraction reasonably connsistent among samples?
+- Were enough reads kept to achieve your analysis goals?
+
+**The truncation lengths are the most likely parameters you might want to revisit.**
+
+Basic strategy: While preserving overlap of 12nts + biological length variation, truncate off quality crashes.
+
+## Primer removal
+
+For common primer designs, in which a primer of fixed length is at the start of the forward (and reverse) reads, primers can be removed by dada2 in the `filterAndTrim` step.
+
+```
+# Single-end reads
+filterAndTrim(..., trimLeft=FWD_PRIMER_LENGTH)
+# Paired-end reads
+filterAndTrim(..., trimLeft=c(FWD_PRIMER_LENGTH, REV_PRIMER_LENGTH))
+```
+
+However! There are other scenarios that this won't handle, in particular when amplicon length is too so variable that reads sometime read into the other primer at the end:
+
+## Primer removal - ITS
+
+![](media/ITS_region_schema.png)
+
+With highly variable amlicons, you will need to use an outside program to remove primers prior to running the dada2 workflow. If you are in that scenario, please see the [DADA2 ITS workflow](https://benjjneb.github.io/dada2/ITS_workflow.html).
+
+## Exercise: Pick truncation and trimming values
+
+**Sequenced** amplicon length: 400-420nts. Primers are sequenced.
+
+![](media/FWD_REV_QualProfile_Ex1.png)
+
+## Exercise: Pick truncation and trimming values
+
+**Sequenced** amplicon length: 400-420nts. Primers are sequenced.
+
+![](media/FWD_REV_QualProfile_Ex1.png)
+
+- `trimLeft=c(17, 21)`
+- `truncLen=c(245, 195)`
+
+## Exercise: Pick truncation and trimming values
+
+**Sequenced** amplicon length: 220-320nts. Primers are not sequenced.
+
+![](media/FWD_REV_QualProfile_Ex1.png) 
+
+## Exercise: Pick truncation and trimming values
+
+**Sequenced** amplicon length: 220-320nts. Primers are not sequenced.
+
+![](media/FWD_REV_QualProfile_Ex1.png) 
+
+- `trimLeft=0`
+- `truncLen=c(210, 160)`
+
+## Exercise: Pick truncation and trimming values
+
+**Sequenced** amplicon length: 250-260nts. Primers are sequenced.
+
+![](media/FWD_REV_QualProfile_Ex2.png) 
+
+## Exercise: Pick truncation and trimming values
+
+**Sequenced** amplicon length: 250-260nts. Primers are sequenced.
+
+![](media/FWD_REV_QualProfile_Ex2.png) 
+
+- `trimLeft=c(14, 17)`
+- `truncLen=c(220, 140)`
+
+## Learn error rates and Denoise
+
+## Learn the Error Rates
+
+```{r learn-errors}
+errF <- learnErrors(filtFs, multithread=2) # Set multithread=TRUE to use all cores
+errR <- learnErrors(filtRs, multithread=2)
+```
+
+The DADA2 algorithm makes use of a parametric error model (`err`) and every amplicon dataset has a different set of error rates. The `learnErrors` method learns this error model from the data, by alternating estimation of the error rates and inference of sample composition until they converge on a jointly consistent solution.
+
+## SANITY CHECK: Error Rates
+
+```{r plot-errors, warning=FALSE}
+plotErrors(errF, nominalQ=TRUE)
+```
+
+## SANITY CHECK: Error Rates
+
+- Does the model (black line) reasonably fit the observations (black points)?
+- Do the error rates mostly decrease with quality score?
+
+The goal here is good, not perfect, so don't sweat the small stuff (or non-convergence).
+
+## Dereplicate
+
+Dereplication combines all identical sequencing reads into "unique sequences" with a corresponding "abundance" equal to the number of reads with that unique sequence.
+
+```{r dereplicate, message=FALSE}
+derepFs <- derepFastq(filtFs)
+derepRs <- derepFastq(filtRs)
+# Name the derep-class objects by the sample names
+names(derepFs) <- sample.names
+names(derepRs) <- sample.names
+```
+
+**Big Data**: The tutorial dataset is small enough to easily load into memory. If your dataset exceeds available RAM, it is preferable to process samples one-by-one in a streaming fashion: see the [DADA2 Workflow on Big Data](bigdata.html) for an example.
+
+## Sample Inference
+
+We are now ready to apply [the core sample inference algorithm](https://www.nature.com/articles/nmeth.3869#methods) to the dereplicated data. 
+
+```{r dada}
+dadaFs <- dada(derepFs, err=errF, multithread=2) # Set multithread=TRUE to use all cores
+```
+
+```{r dadaR, results = 'hide'}
+dadaRs <- dada(derepRs, err=errR, multithread=2)
+```
+
+## Inspect the `dada-class` object
+
+```{r see-dada}
+dadaFs[[1]]
+```
+
+The `getSequences` and `getUniques` functions work on just about any dada2-created object. `getUniques` returns an integer vector, named by the sequences and valued by their abundances. `getSequences` just returns the sequences.
+
+```{r}
+head(getSequences(dadaFs[[1]]))
+```
+
+## DADA2 Options: Multithreading
+
+All computation-intensive functions in the dada2 R package have optional multithreading via the `multithread` argument.
+
+- `multithread = FALSE`: No multithreading. The default.
+- `multithread = TRUE`: Detect the number of available threads, and use that many. The fastest.
+- `multithread = N`: Use N threads. A way to be a good citizen on shared servers and allow processing for other tasks.
+
+Usually you will want to turn multithreading on!
+
+## DADA2 Options: Pooling
+
+Pooling can [increase sensitivity to rare per-sample variants](https://benjjneb.github.io/dada2/pool.html#pooling-for-sample-inference). `dada(..., pool=TRUE)`
+
+The cost of pooling is increasing memory and computation time requirements. Pooled sample inference scales quadratically in the number of samples, while the default independent sample inference scales linearly.
+
+Pseudo-pooling [approximates pooling in linear time](https://benjjneb.github.io/dada2/pseudo.html#pseudo-pooling). `dada(..., pool="pseudo")`
+
+![](media/pseudo_480.png){width=800px}
+
+## DADA2 Options: Non-Illumnina sequencing technologies
+
+For pyrosequencing data (e.g. **454 or Ion Torrent**) we recommend a slight change in the alignment parameters to better handle those technologies tendency to make homopolymer errors.
+
+```{r pyro, eval=FALSE}
+foo <- dada(..., HOMOPOLYMER_GAP_PENALTY=-1, BAND_SIZE=32)
+```
+
+For PacBio CCS amplicon sequencing, see [our recent paper](https://dx.doi.org/10.1093/nar/gkz569) for evaluation, and [the reproducible workflows from the paper](https://github.com/benjjneb/LRASManuscript) for guidance.
+
+![](media/Fecal_Ecoli_ASVs.png){width=480px}
+
+
+## DADA2 Options: Sensitivity
+
+Sensitivity options
+
+- `OMEGA_A`: The key sensititivy parameters, controls the p-value threshold at which to call new ASVs.
+- `OMEGA_C`: The error-correction threshold. One alternative is to turn off error-correction.
+- `MIN_ABUNDANCE`: Sets a minimum abundance threshold to call new ASVs.
+- `MIN_FOLD`: Minimum fold overabundance relative to error model for new ASVs.
+
+**See also the `priors` argument to raise sensitivity (at no cost to specificity) for sequences you expect might be present.**
+
+## Merge, Table, Remove Chimeras, Sanity Check
+
+## Merge Paired Reads
+
+```{r merge, message=FALSE}
+mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=TRUE)
+```
+
+**Most reads should pass the merging step! If that isn't the case, are you sure your truncated reads still overlap sufficiently?**
+
+## Merging options
+
+![](media/merging_scenarios.png){width=960px} 
+
+- If (a): Use normally.
+- If (b or a+b): `mergePairs(..., trimOverhang=TRUE)` *(but you probably should have trimmed away the overhang earlier, see ITS workflow)*
+- If (c): `mergePairs(..., justConcatenate=TRUE)`.
+- If (a+c or a+b+c): Trouble.
+
+## Construct Sequence Table (ASV Table)
+
+```{r seqtab}
+seqtab <- makeSequenceTable(mergers)
+```
+
+The sequence table is a `matrix` with rows corresponding to (and named by) the samples, and columns corresponding to (and named by) the sequence variants.
+
+```{r dim}
+dim(seqtab)
+```
+
+```{r seqlens}
+table(nchar(getSequences(seqtab)))
+```
+
+The lengths of the merged sequences all fall in the expected range for this amplicon.
+
+## Remove chimeras
+
+Chimeric sequences are identified if they can be exactly reconstructed by combining a left-segment and a right-segment from two more abundant "parent" sequences.
+
+```{r chimeras, message=FALSE}
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=2, verbose=TRUE)
+# Set multithread=TRUE to use all cores
+sum(seqtab.nochim)/sum(seqtab)
+```
+
+**In some cases, most sequences will be chimeric. But most reads should not be. If they are, you probably have unremoved primers.**
+
+If you used `pool=TRUE` during sample inference, you should use `method="pooled"` for chimera removal.
+
+## Track reads through the pipeline
+
+Look at the number of reads that made it through each step in the pipeline:
+```{r track}
+getN <- function(x) sum(getUniques(x))
+track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
+rownames(track) <- sample.names
+head(track)
+```
+
+Looks good! We kept the majority of our raw reads, and there is no over-large drop associated with any single step.
+
+## SANITY CHECK: Read Tracking
+
+```{r track2}
+head(track)
+```
+
+- If a majority of reads failed to merge, you may need to revisit `truncLen` to ensure overlap.
+- If a majority of reads were removed as chimeric, you may have unremoved primers.
+
+**This is the single most important place to inspect your workflow to make sure everything went as expected!**
+
+## Assign Taxonomy
+
+The `assignTaxonomy` function takes as input a set of sequences to ba classified, and a training set of reference sequences with known taxonomy, and outputs taxonomic assignments with at least `minBoot` bootstrap confidence. 
+
+```{r taxify}
+taxa <- assignTaxonomy(seqtab.nochim, "~/tax/rdp_train_set_16.fa.gz", multithread=2)
+```
+
+**I recommend [the Silva database](file:///Users/bcallah/dada2/training.html) for 16S data. We are using the RDP database here to keep file sizes down.**
+
+## Taxonomic assignment methods
+
+The dada2 `assignTaxonomy` function is just a reimplementation of the naive Bayesian classifer developed as part of the RDP project. It is based on shredding reads into kmers, matching against a reference database, and assigning if classification is consistent over subsets of the shredded reads.
+
+![](media/RDP_Wang_Article.png){width=540px}
+
+This method has held up well over the years, but additional options are now available. For classification based on exact matching, consider `assignSpecies`. For general purpose classification with reported higher accuracy, consider the reently published `IDTaxa` method in the DECIPHER package. You can see how to use `IDTaxa` in [the DADA2 tutorial](https://benjjneb.github.io/dada2/tutorial.html#assign-taxonomy).
+
+## Taxonomic assignment databases
+
+Having a good reference database is usually **much more important** than the difference between the good taxonomic assignment methods.
+
+What is the reference database for your metabarcoding locus? Is it comprehensive? Appropriate for the environments you are sampling? Do you need to augment or construct your own?
+
+## SANITY CHECK: Taxonomic Assignments
+
+```{r tax-look}
+head(unname(taxa))
+```
+
+**Do the taxonomies assigned to the top ASVs make sense in the sampled environment?**
+
+## Handoff to Phyloseq
+
+```{r phyloseq}
+library("phyloseq"); packageVersion("phyloseq")
+```
+
+Create a phyloseq object from the ASV table and taxonomy assigned by DADA2.
+
+```{r make-ps}
+ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
+               tax_table(taxa))
+ps
+```
+
+Usually you'll want to add sample metadata at this point as well.
+
+```{r cleanup, echo=FALSE, }
+foo <- file.remove(list.files(file.path(path, "filtered"), full.names=TRUE))
+```
