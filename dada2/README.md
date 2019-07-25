@@ -4,13 +4,13 @@ This directory contains files for the lecture slides, the tutorials and data for
 
 ### Lectures
 
-[OTUs and ASVs lecture](https://github.com/mblstamps/stamps2019/blob/master/dada2/Lecture_OTUs_ASVs.pdf)
+- [OTUs and ASVs lecture](https://github.com/mblstamps/stamps2019/blob/master/dada2/Lecture_OTUs_ASVs.pdf)
 
-[DADA2 workflow](https://github.com/mblstamps/stamps2019/blob/master/dada2/Lecture_dada2_workflow.pdf)
+- [DADA2 workflow](https://github.com/mblstamps/stamps2019/blob/master/dada2/Lecture_dada2_workflow.pdf)
 
 ### Data
 
-[Data files for lecture and labs](https://github.com/mblstamps/stamps2019/tree/master/dada2/data)
+- [Data files for lecture and labs](https://github.com/mblstamps/stamps2019/tree/master/dada2/data)
 
 ### Bonus information
 
