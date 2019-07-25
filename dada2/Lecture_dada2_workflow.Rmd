@@ -1,6 +1,8 @@
 ---
-title: "DADA2 Tutorial: STAMPS 2019"
-output: slidy_presentation
+title: 'DADA2 Tutorial: STAMPS 2019'
+output:
+  beamer_presentation: default
+  slidy_presentation: default
 ---
 
 ## Processing marker-gene data with...
@@ -393,7 +395,7 @@ head(track)
 The `assignTaxonomy` function takes as input a set of sequences to ba classified, and a training set of reference sequences with known taxonomy, and outputs taxonomic assignments with at least `minBoot` bootstrap confidence. 
 
 ```{r taxify}
-taxa <- assignTaxonomy(seqtab.nochim, "~/tax/rdp_train_set_16.fa.gz", multithread=2)
+taxa <- assignTaxonomy(seqtab.nochim, "tax/rdp_train_set_16.fa.gz", multithread=2)
 ```
 
 **I recommend [the Silva database](file:///Users/bcallah/dada2/training.html) for 16S data. We are using the RDP database here to keep file sizes down.**
