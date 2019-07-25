@@ -1,0 +1,377 @@
+---
+title: "Importing data into phyloseq"
+date: July 29, 2019   
+author: "Joey McMurdie and Susan Holmes"
+
+output:
+  BiocStyle::html_document:
+    number_sections: no
+    toc: yes
+    toc_depth: 4
+    toc_float: TRUE
+---
+
+
+The custom functions that read external data files and return an instance of the phyloseq-class are called *importers*. Validity and coherency between data components are checked by the phyloseq-class constructor, `phyloseq()`
+which is invoked internally by the importers, 
+and is also the recommended function for creating a phyloseq object 
+from [manually imported data](#manual). 
+The component indices representing OTUs or samples are checked for intersecting indices, 
+and trimmed/reordered such that all available (non-`r NULL`) component data 
+describe exactly the same OTUs and samples, in the same order. 
+
+See `?import` after phyloseq has been loaded (`library("phyloseq")`), to get an overview of available import functions and documentation links to their specific doc pages, or see below for examples using some of the more popular import functions.
+
+
+---
+
+# Loading included data
+
+See [the tutorial on included example data in phyloseq](http://joey711.github.io/phyloseq/Example-Data) for more details.
+
+The `data` command in the R language loads pre-imported datasets that are included in packages. For example, the "Global Patterns" dataset can be loaded into the R workspace with the following command.
+
+```{r message=FALSE}
+data(GlobalPatterns)
+```
+
+
+---
+
+# Examples
+
+```{r package-load, warning=FALSE, message=FALSE}
+library("phyloseq"); packageVersion("phyloseq")
+library("ggplot2"); packageVersion("ggplot2")
+```
+
+Define a default theme for ggplot graphics.
+```{r gplot-theme}
+theme_set(theme_bw())
+```
+
+
+
+## phyloseq-ize Data already in R
+
+Any data already in an R session can be annoated/coerced 
+to be recognized by phyloseq's functions and methods.
+This is important, because there are lots of ways 
+you might receive data related to a microbiome project, 
+and not all of these will come from a popular server or workflow 
+that is already supported by a phyloseq import function. 
+There are, however, lots of general-purpose tools available
+for reading any common file format into R.
+We also want to encourage users to create and share
+their own import code for special/new data formats as they arive.
+
+For these reasons especially, phyloseq provides tools for 
+*constructing* phyloseq component data, 
+and the experiment-level multi-component data object, 
+the *phyloseq-class*. 
+These are the same functions used internally by 
+[the currently available importers](#import_functions).
+
+```{r eval=FALSE}
+?phyloseq
+?otu_table
+?sample_data
+?tax_table
+```
+
+<img src="http://www.plosone.org/article/info:doi/10.1371/journal.pone.0061217.g003/largerimage" width="750px" />
+
+**If you can get the data into R, then you can get it "into" phyloseq.**
+
+Constructors:
+
+- `otu_table` - Works on any numeric `matrix`. You must also specify if the species are rows or columns
+- `sample_data` - Works on any `data.frame`. The rownames must match the sample names in the `otu_table` if you plan to combine them as a phyloseq-object
+- `tax_table` - Works on any character `matrix`. The rownames must match the OTU names (`taxa_names`) of the `otu_table` if you plan to combine it with a phyloseq-object.
+- `phyloseq` - Takes as argument an `otu_table` and any unordered list of valid phyloseq components: `sample_data`, `tax_table`, `phylo`, or `XStringSet`. The tip labels of a phylo-object (tree) must match the OTU names of the `otu_table`, and similarly, the sequence names of an `XStringSet` object must match the OTU names of the `otu_table`. 
+- `merge_phyloseq` - Can take any number of phyloseq objects and/or phyloseq components, and attempts to combine them into one larger phyloseq object. This is most-useful for adding separately-imported components to an already-created phyloseq object.
+
+**Note:** OTUs and samples are included in the combined object only if they are present in all components. For instance, extra "leaves" on the tree will be trimmed off when that tree is added to a phyloseq object.
+
+**Example** - In the following example, we will define random example data tables in R, and then combine these into a phyloseq object. If you are able to get your data tables into R, then you can apply the following method to manually create phyloseq instances of your own data.
+
+
+We'll create the example vanilla R tables using base R code. No packages required yet. 
+
+```{r}
+# Create a pretend ASV/OTU table that you read from a file, called asvmat
+asvmat = matrix(sample(1:100, 100, replace = TRUE), nrow = 10, ncol = 10)
+asvmat
+```
+
+It needs sample names and ASV/OTU names, the index names of the your own matrix might already have this.
+
+```{r}
+rownames(asvmat) <- paste0("ASV", 1:nrow(asvmat))
+colnames(asvmat) <- paste0("Sample", 1:ncol(asvmat))
+asvmat
+```
+
+Now we need a pretend taxonomy table
+
+```{r}
+taxmat = matrix(sample(letters, 70, replace = TRUE), nrow = nrow(asvmat), ncol = 7)
+rownames(taxmat) <- rownames(asvmat)
+colnames(taxmat) <- c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+taxmat
+class(asvmat)
+class(taxmat)
+```
+
+Note how these are just vanilla R matrices.   
+Now let's tell phyloseq to combine them into a phyloseq object.    
+
+In the previous lines, we didn't even need to have phyloseq loaded yet. 
+We need to have that in place to proceed:
+
+```{r}
+library("phyloseq")
+ASV = otu_table(asvmat, taxa_are_rows = TRUE)
+TAX = tax_table(taxmat)
+ASV
+TAX
+physeq = phyloseq(ASV, TAX)
+physeq
+plot_bar(physeq, fill = "Family")
+```
+
+Let's add to this, pretending we also had other types of data available.
+
+Create random sample data, and add that to the combined dataset. Make sure that the sample names match the `sample_names` of the `otu_table`.
+
+```{r}
+sampledata = sample_data(data.frame(
+  Location = sample(LETTERS[1:4], size=nsamples(physeq), replace=TRUE),
+  Depth = sample(50:1000, size=nsamples(physeq), replace=TRUE),
+  row.names=sample_names(physeq),
+  stringsAsFactors=FALSE
+))
+sampledata
+```
+
+Now create a random phylogenetic tree with the ape package, and add it to your dataset. 
+
+Make sure its tip labels match your `otu_table`.
+
+```{r}
+library("ape")
+random_tree = rtree(ntaxa(physeq), rooted=TRUE, tip.label=taxa_names(physeq))
+plot(random_tree)
+```
+
+Now let's combine these altogether. We can do this either by adding the new data components to the phyloseq object we already have by using `merge_phyloseq`, or we can use a fresh new call to `phyloseq` to build it again from scratch. The results should be identical, and we can check. You can always do either one with the help from accessor functions, and the choice is stylistic.
+
+Merge new data with current phyloseq object:
+
+```{r}
+physeq1 = merge_phyloseq(physeq, sampledata, random_tree)
+physeq1
+```
+
+Rebuild phyloseq data from scratch using all the simulated data components we just generated:
+
+```{r}
+physeq2 = phyloseq(ASV, TAX, sampledata, random_tree)
+physeq2
+```
+
+Are they identical?
+
+```{r identical-check-manual}
+identical(physeq1, physeq2)
+```
+
+Let's build a couple tree plots with the new combined data.
+
+```{r treeplot}
+plot_tree(physeq1, color="Location", label.tips="taxa_names", ladderize="left", plot.margin=0.3)
+plot_tree(physeq1, color="Depth", shape="Location", label.tips="taxa_names", ladderize="right", plot.margin=0.3)
+```
+
+Now how about some heatmaps.
+
+```{r heatmap-random}
+plot_heatmap(physeq1)
+plot_heatmap(physeq1, taxa.label="Phylum")
+```
+
+As you can see, you gain access to the all the typical phyloseq tools, but without relying on any of the import wrappers.
+
+
+---
+
+## <a name="mgrast"></a> MG-RAST
+
+A recent phyloseq issues tracker post discusses and demonstrates importing a `.biom` file exported by MG-RAST:
+
+https://github.com/joey711/phyloseq/issues/272
+
+The otherwise-recommended [import_biom](#import_biom) function does not work properly (for now) on this special variant of the BIOM-format. Or said another way, the [import_biom](#import_biom) function anticipates a different special variant of the BIOM-format the is generated by recent versions of QIIME. The [issue post about MG-RAST and phyloseq](https://github.com/joey711/phyloseq/issues/272) provides an example for [importing the data manually](#manual) using coercion functions and phyloseq constructors.
+
+
+---
+
+## <a name="microbio_me"></a> [microbio_me_qiime](download-microbio.me.html) (DEFUNCT)
+
+[microbio_me_qiime](download-microbio.me.html) 
+is a function in phyloseq that USED TO interface with [QIIME_DB](http://www.microbio.me/qiime/index.psp).
+**QIIME-DB IS DOWN INDEFINITELY**. The function is listed here for reference only. The following details in this section are the most recent useful tutorial details when the server was still up.
+
+You will need to setup an account to browse the available data sets and their IDs. If you know a datasets ID already, or its assigned number, you can provide that as the sole argument to this function and it will download, unpack, and import the data into R, all in one command. Alternatively, if you have already downloaded the data from the QIIME server, and now have it locally on your hard drive, you can provide the local path to this tar-gz or zip file, and it will perform the unpacking and importing step for you. I'm finding this increasingly useful for creating demonstrations of methods and graphics, and can be a very effective way for you to provide fully reproducible analysis if your own data is already hosted on the [microbio.me](http://www.microbio.me/qiime/index.psp) server.
+
+
+---
+
+# The import family of functions
+
+
+## <a name="import_biom"></a>import_biom
+
+Newer versions of [QIIME](http://www.qiime.org/) produce a more-comprehensive 
+and formally-defined JSON or HDF5 file format, 
+called [biom file format](http://biom-format.org/):
+
+"The biom file format (canonically pronounced ‘biome’) is designed to be a general-use format for representing counts of observations in one or more biological samples. BIOM is a recognized standard for the Earth Microbiome Project and is a Genomics Standards Consortium candidate project."
+
+http://biom-format.org/
+
+The phyloseq package includes small examples of biom files with different levels and organization of data. The following shows how to import each of the four main types of biom files (in practice, you don't need to know which type your file is, only that it is a biom file). In addition, the `import_biom` function allows you to simultaneously import an associated phylogenetic tree file and reference sequence file (e.g. fasta).
+
+First, define the file paths. In this case, this will be within the phyloseq package, so we use special features of the `system.file` command to get the paths. This should also work on your system if you have phyloseq installed, regardless of your Operating System.
+
+```{r biom-define-files}
+rich_dense_biom  = system.file("extdata", "rich_dense_otu_table.biom",  package="phyloseq")
+rich_sparse_biom = system.file("extdata", "rich_sparse_otu_table.biom", package="phyloseq")
+min_dense_biom   = system.file("extdata", "min_dense_otu_table.biom",   package="phyloseq")
+min_sparse_biom  = system.file("extdata", "min_sparse_otu_table.biom",  package="phyloseq")
+treefilename = system.file("extdata", "biom-tree.phy",  package="phyloseq")
+refseqfilename = system.file("extdata", "biom-refseq.fasta",  package="phyloseq")
+```
+
+Now that we've defined the file paths, let's use these as argument to the `import_biom` function. Note that the tree and reference sequence files are both suitable for any of the example biom files, which is why we only need one path for each. In practice, you will be specifying a path to a sequence or tree file that matches the rest of your data (include tree tip names and sequence headers)
+
+```{r}
+import_biom(rich_dense_biom, treefilename, refseqfilename, parseFunction=parse_taxonomy_greengenes)
+import_biom(rich_sparse_biom, treefilename, refseqfilename, parseFunction=parse_taxonomy_greengenes)
+import_biom(min_dense_biom, treefilename, refseqfilename, parseFunction=parse_taxonomy_greengenes)
+import_biom(min_sparse_biom, treefilename, refseqfilename, parseFunction=parse_taxonomy_greengenes)
+```
+
+In practice, you will store the result of your import as some variable name, like `myData`, 
+and then use this data object in downstream data manipulations and analysis. For example,
+
+```{r}
+myData = import_biom(rich_dense_biom, treefilename, refseqfilename, parseFunction=parse_taxonomy_greengenes)
+myData
+plot_tree(myData, color="Genus", shape="BODY_SITE", size="abundance")
+plot_richness(myData, x="BODY_SITE", color="Description")
+plot_bar(myData, fill="Genus")
+refseq(myData)
+```
+
+
+---
+
+## <a name="import_qiime"></a> import_qiime
+
+QIIME originally produced output files in its own uniquely-defined format.
+These legacy formats can be imported using phyloseq functions,
+including especially an OTU file that typically contains 
+both OTU-abundance and taxonomic identity information. 
+The map-file is also an important input to QIIME 
+that stores sample covariates, converted naturally to 
+the `sample_data-class` component data type in the phyloseq-package. 
+QIIME may also produce a phylogenetic tree with a tip for each OTU, 
+which can also be imported by this function, or separately using `read_tree`.
+
+See [qiime.org](http://www.qiime.org/) for details on using QIIME. While there are many complex dependencies, QIIME can be downloaded as a pre-installed linux virtual machine that runs “off the shelf”.
+
+The different files useful for import to phyloseq are not collocated in a typical run of the QIIME pipeline. See the basics phyloseq vignette for an example of where to find the relevant files in the output directory.
+
+```{r import-qiime}
+otufile = system.file("extdata", "GP_otu_table_rand_short.txt.gz", package="phyloseq")
+mapfile = system.file("extdata", "master_map.txt", package="phyloseq")
+trefile = system.file("extdata", "GP_tree_rand_short.newick.gz", package="phyloseq")
+rs_file = system.file("extdata", "qiime500-refseq.fasta", package="phyloseq")
+qiimedata = import_qiime(otufile, mapfile, trefile, rs_file)
+qiimedata
+```
+
+So it has Let's try some quick graphics built from our newly-imported dataset, `qiimedata`.
+
+```{r import-qiime-graphics}
+plot_bar(qiimedata, x="SampleType", fill="Phylum")
+plot_heatmap(qiimedata, sample.label="SampleType", species.label="Phylum")
+```
+
+
+---
+
+## <a name="import_mothur"></a> import_mothur
+
+
+The open-source, platform-independent, locally-installed software package, "mothur"", can process barcoded amplicon sequences and perform OTU-clustering, among other things. It is extensively documented on a wiki at [the mothur wiki](http://www.mothur.org/wiki/Main_Page).
+
+```{r}
+mothlist  = system.file("extdata", "esophagus.fn.list.gz", package="phyloseq")
+mothgroup = system.file("extdata", "esophagus.good.groups.gz", package="phyloseq")
+mothtree  = system.file("extdata", "esophagus.tree.gz", package="phyloseq")
+show_mothur_cutoffs(mothlist)
+cutoff    = "0.10"
+x = import_mothur(mothlist, mothgroup, mothtree, cutoff)
+x
+```
+
+```{r plot-mothur-phyloseq-tree}
+plot_tree(x, color="samples")
+```
+
+```{r plot-mothur-phyloseq-richness}
+SDF = data.frame(samples=sample_names(x), row.names=sample_names(x))
+sample_data(x) <- sample_data(SDF)
+plot_richness(x)
+```
+
+The class and data in the object returned by `import_mothur` depends on the  arguments. If the first three arguments are provided, then a phyloseq object should be returned containing both a tree and its associated OTU table. If only a list and group file are provided, then an "otu_table" object is returned. Similarly, if only a list and tree file are provided, then only a tree is returned ("phylo" class).
+
+Returns just a tree
+```{r}
+x1 = import_mothur(mothlist, mothur_tree_file=mothtree, cutoff="0.10")
+x2 = import_mothur(mothlist, mothur_tree_file=mothtree, cutoff="0.08")
+plot(x1)
+```
+
+Returns just an OTU table
+
+```{r}
+OTU = import_mothur(mothlist, mothgroup, cutoff="0.08")
+dim(OTU)
+head(OTU)
+```
+
+
+
+---
+
+## <a name="import_pyrotagger"></a> import_pyrotagger
+
+PyroTagger is created and maintained by the [Joint Genome Institute](http://pyrotagger.jgi-psf.org/)
+
+The typical output form PyroTagger is a spreadsheet format ".xls", which poses additional import challenges. However, virtually all spreadsheet applications support the ".xls" format, and can further export this file in a tab-delimited format. It is recommended that you convert the xls-file without any modification (as tempting as it might be once you have loaded it) into a tab-delimited text file. Deselect any options to encapsulate fields in quotes, as extra quotes around each cell's contents might cause problems during file processing. These quotes will also inflate the file-size, so leave them out as much as possible, while also resisting any temptation to modify the xls-file “by hand”.
+
+A highly-functional and free spreadsheet application can be obtained as part of [the cross-platform OpenOffice suite](http://www.openoffice.org/), and works for the above required conversion.
+
+It is regrettable that this importer does not take the xls-file directly as input. However, because of the moving-target nature of spreadsheet file formats, there is limited support for direct import of these formats into R. Rather than add to the dependency requirements of emphphyloseq and the relative support of these xls-support packages, it seems more efficient to choose an arbitrary delimited text format, and focus on the data structure in the PyroTagger output. This will be easier to support in the long-run.
+
+For example, the path to a pyrotagger tab-delimited file might be saved as `pyrotagger_tab_file`, and can be imported using:
+
+```{r eval=FALSE}
+import_pyrotagger_tab(pyrotagger_tab_file)
+```
+
+

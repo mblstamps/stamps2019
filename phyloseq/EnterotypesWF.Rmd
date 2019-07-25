@@ -1,0 +1,482 @@
+---
+title: "The Enterotypes Example"
+author: "Susan Holmes and Joey McMurdie"
+date: "July 25, 2019"
+output: html_document
+---
+
+<link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+
+<style type="text/css"> 
+.small-code pre code {
+  font-size: 1em;
+}
+body{
+  font-family: Lato;
+  font-size: 18pt;
+}
+h1{
+  font-family: Lato;
+  font-size: 24pt;
+  color: #0080FF;
+}
+h2,h3,h4,h5,h6{
+  font-family: Lato;
+  font-size: 22pt;
+  color: #0080FF;
+}
+b, strong {
+ color: #0080FF;
+}
+</style>
+
+
+
+![The main Figure from Nature Paper](/Users/susan/Dropbox/images/EnterotypeBCA.png)
+
+Arumugam M, Raes J, Pelletier E, Le Paslier D, Yamada T, Mende DR, Fernandes GR, Tap J, Bruls T, Batto JM, Bertalan M. ...
+Enterotypes of the human gut microbiome. Nature. 2011;473(7346):174-80.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+
+```{r, message=FALSE}
+library("phyloseq")
+library("cluster")
+data("enterotype")
+```
+
+
+
+
+```{r SubsetData}
+ps_data = subset_samples(enterotype, SeqTech == "Sanger")
+ps_data
+otu_table(ps_data)[1:5,1:9]
+apply(otu_table(ps_data),2,sum)
+```
+
+```{r AddNA}
+newsampledata=sample_data(ps_data)
+newsampledata$Enterotype=addNA(newsampledata$Enterotype)
+sample_data(ps_data)=newsampledata
+table(sample_data(ps_data)$Enterotype)
+levels(sample_data(ps_data)$Enterotype) =c("1","2","3","0")
+table(sample_data(ps_data)$Enterotype)
+```
+
+This has 41 samples, 9 of which were mysteriously dropped from the enterotype study, we are going to re-include them 
+with the Enterotype classifier "0".
+
+
+```{r MissingTaxa}
+data = as(otu_table(ps_data), "matrix")
+data = data[-1, ]
+```
+
+Choose a distance (Jensen-Shannon symmetrized KL divergence)
+
+```{r, echo=FALSE}
+# Define a custom JSD calculator function
+dist.JSD <- function(inMatrix, pseudocount = 1e-06, ...) {
+    KLD <- function(x, y) sum(x * log(x/y))
+    JSD <- function(x, y) sqrt(0.5 * KLD(x, (x + y)/2) + 0.5 * KLD(y, (x + y)/2))
+    matrixColSize <- length(colnames(inMatrix))
+    matrixRowSize <- length(rownames(inMatrix))
+    colnames <- colnames(inMatrix)
+    resultsMatrix <- matrix(0, matrixColSize, matrixColSize)
+
+    inMatrix = apply(inMatrix, 1:2, function(x) ifelse(x == 0, pseudocount, 
+        x))
+
+    for (i in 1:matrixColSize) {
+        for (j in 1:matrixColSize) {
+            resultsMatrix[i, j] = JSD(as.vector(inMatrix[, i]), as.vector(inMatrix[, 
+                j]))
+        }
+    }
+    rownames(resultsMatrix) <- colnames(resultsMatrix) <- colnames
+    resultsMatrix <- as.dist(resultsMatrix)
+    attr(resultsMatrix, "method") <- "dist"
+    return(resultsMatrix)
+}
+```
+
+```{r Compute JSD}
+data.dist = dist.JSD(data)
+```
+
+Ordination
+==================
+
+PCOA(principal coordinates analysis or multidimen. scaling)
+```{r JSDMDS}
+require(ggplot2)
+#Standard Multidimensional Scaling
+ent.jsd=ordinate(ps_data,method="MDS",distance=data.dist)
+
+p <- NULL
+# Create plot, store as temp variable, p
+p <- plot_ordination(ps_data, ent.jsd, color = "Enterotype", shape = "Enterotype")
+    # Add title to each plot
+    p <- p + ggtitle("MDS using JSD distance  ")
+p
+```
+
+Notice the difference with
+```{r}
+p + coord_fixed()
+```
+
+NonMetric Multidimensional Scaling
+--------------------------------------
+```{r JSDNMDS}
+#NonMetric Multidimensional Scaling
+ent.jsd.nm=ordinate(ps_data,method="NMDS",distance=data.dist)
+
+p <- NULL
+# Create plot, store as temp variable, p
+p <- plot_ordination(ps_data, ent.jsd.nm, color = "Enterotype", 
+                     shape = "Enterotype")
+# Add title to each plot
+p <- p + ggtitle("Non Metric MDS using JSD distance  ")
+p
+```
+
+Correspondence Analysis
+-------------------------------
+
+```{r,echo=FALSE}
+clus=sample_data(ps_data)$Enterotype
+data123=data[,-which(clus==0)]
+data.dist123=dist.JSD(data123)
+clus123=clus[-which(clus==0)]
+```
+
+```{r,echo=FALSE,eval=FALSE}
+####This doesn't work as is.......
+obs.pca=dudi.pca(data.frame(t(data123)), scannf=F, nf=10)
+ obs.bet=bca(obs.pca, fac=clus123, scannf=F, nf=9) 
+ s.class(obs.bet$ls, fac=clus123, grid=F)
+```
+
+
+```{r CA, fig.width=9,fig.height=6}
+#Correspondence Analysis
+ent.ca = ordinate(ps_data, method = "CCA", distance = NULL)
+
+p <- NULL
+# Create plot, store as temp variable, p
+p <- plot_ordination(ps_data, ent.ca, color = "Enterotype", shape = "Enterotype")
+    # Add title to each plot
+    p <- p + ggtitle("Correspondence Analysis (chisquare distance)")
+p 
+
+```
+
+Bray Curtis
+-----------------
+```{r BrayMDS}
+#Bray-Curtis
+ent.bray = ordinate(ps_data, method = "MDS", distance = "bray")
+# Create plot, store as temp variable, p
+p <- plot_ordination(ps_data, ent.bray, color = "Enterotype", shape = "Enterotype")
+    # Add title to each plot
+    p <- p + ggtitle("Bray Curtis Distance, MDS")
+p +coord_fixed()
+```
+
+Nonmetric MDS
+-------------------
+```{r BrayNMDS}
+#Bray-Curtis
+ent.bray.nm = ordinate(ps_data, method = "NMDS", distance = "bray")
+# Create plot, store as temp variable, p
+p <- plot_ordination(ps_data, ent.bray.nm, color = "Enterotype", shape = "Enterotype")
+    # Add title to each plot
+    p <- p + ggtitle("Bray Curtis Distance, MDS")
+p
+```
+
+
+
+
+[See more explorations of the data at the phyloseq vignette](https://www.bioconductor.org/packages/devel/bioc/vignettes/phyloseq/inst/doc/phyloseq-analysis.html)
+
+Remove the outliers and redo the analyses
+==========================================
+
+Take out the samples that were ignored in the paper:
+
+```{r}
+###beware new name for different data set
+ps_nata = subset_samples(ps_data, Enterotype !="0")
+nata = as(otu_table(ps_nata), "matrix")
+nata = nata[-1, ]
+nata.dist = dist.JSD(nata)
+```
+
+
+A complete loop through all distances
+----------------------------------------
+
+```{r, message=FALSE,warning=FALSE}
+dist_methods <- unlist(distanceMethodList)
+###Remove distances requiring a tree
+dist_methods <- dist_methods[-c(1:3,16)]
+# Remove the user-defined distance
+dist_methods = dist_methods[-which(dist_methods == "ANY")]
+plist <- vector("list", length(dist_methods))
+names(plist) = dist_methods
+for (i in dist_methods) {
+    # Calculate distance matrix
+    iDist <- distance(ps_nata, method = i)
+    # Calculate ordination
+    iMDS <- ordinate(ps_nata, "MDS", distance = iDist)
+    ## Make plot Don't carry over previous plot (if error, p will be blank)
+    p <- NULL
+    # Create plot, store as temp variable, p
+    p <- plot_ordination(ps_nata, iMDS, color = "Enterotype", shape = "Enterotype")
+    # Add title to each plot
+    p <- p + ggtitle(paste("MDS using distance method ", i, sep = ""))
+    # Save the graphic to file.
+    plist[[i]] = p
+}
+```
+
+```{r, message=FALSE,warning=FALSE, fog.width=12, fig.height=11}
+require(plyr)
+df = ldply(plist, function(x) x$data)
+names(df)[1] <- "distance"
+p = ggplot(df, aes(Axis.1, Axis.2, color = Enterotype, shape = Enterotype))
+p = p + geom_point(size = 3, alpha = 0.5)
+p = p + facet_wrap(~distance, scales = "free")
+p = p + ggtitle("MDS on various distance metrics for Enterotype dataset")
+p
+```
+
+With a different clustering variable
+-------------------------------------------------------
+ (It may be more interesting)
+
+```{r fulldist,fig.width=12,fig.height=11}
+theme_set(theme_bw())
+data(enterotype)
+enterotype <- subset_taxa(enterotype, Genus != "-1")
+```
+
+```{r EnteroTechno,echo=FALSE,message=FALSE,warning=FALSE}
+plist <- vector("list", length(dist_methods))
+names(plist) = dist_methods
+for (i in dist_methods) {
+    # Calculate distance matrix
+    iDist <- distance(enterotype, method = i)
+    # Calculate ordination
+    iMDS <- ordinate(enterotype, "MDS", distance = iDist)
+    ## Make plot Don't carry over previous plot (if error, p will be blank)
+    p <- NULL
+    # Create plot, store as temp variable, p
+    p <- plot_ordination(enterotype, iMDS, color = "SeqTech", shape = "Enterotype")
+    # Add title to each plot
+    p <- p + ggtitle(paste("MDS using distance method ", i, sep = ""))
+    # Save the graphic to file.
+    plist[[i]] = p
+}
+```
+```{r alldist2,fig.width=10,fig.height=10}
+df = ldply(plist, function(x) x$data)
+names(df)[1] <- "distance"
+p = ggplot(df, aes(Axis.1, Axis.2, color = SeqTech, shape = Enterotype))
+p = p + geom_point(size = 3, alpha = 0.5)
+p = p + facet_wrap(~distance, scales = "free")
+p = p + ggtitle("MDS on various distance metrics for Enterotype dataset")
+p
+
+```
+
+
+How many clusters?
+===========================
+```{r}
+pam.clustering = function(x, k) {
+    # x is a distance matrix and k the number of clusters
+    require(cluster)
+    cluster = as.vector(pam(as.dist(x), k, diss = TRUE)$clustering)
+    return(cluster)
+}
+```
+
+The authors fixed the number of clusters to 3, would we? 
+-----------------------------------------------------------
+```{r}
+### The following line is already asking for 3 clusters...
+data.cluster = pam.clustering(nata.dist, k = 3)
+require(clusterSim)
+nclusters = index.G1(t(nata), data.cluster, d = nata.dist, centrotypes = "medoids")
+nclusters = NULL
+for (k in 1:20) {
+    if (k == 1) {
+        nclusters[k] = NA
+    } else {
+        data.cluster_temp = pam.clustering(nata.dist, k)
+        nclusters[k] = index.G1(t(nata), data.cluster_temp, d = nata.dist, centrotypes = "medoids")
+    }
+}
+```
+
+```{r ClusterChoicePlot}
+plot(nclusters, type = "h", xlab = "k clusters", ylab = "CH index", 
+    main = "Optimal number of clusters (Calinsky and Harabsz 1974)")
+```    
+
+or we could use the Gap Statistic:
+```{r}
+exord = ordinate(ps_nata, method = "MDS", distance = "jsd")
+```
+
+```{r GapPlot,echo=FALSE}
+pam1 = function(x, k) {
+    list(cluster = pam(x, k, cluster.only = TRUE))
+}
+x = phyloseq:::scores.pcoa(exord, display = "sites")
+# gskmn = clusGap(x[, 1:2], FUN=kmeans, nstart=20, K.max = 6, B = 500)
+gskmn = clusGap(x[, 1:2], FUN = pam1, K.max = 6, B = 50)
+#gskmn
+
+gap_statistic_ordination = function(ord, FUNcluster, type = "sites", K.max = 6,     axes = c(1:2), B = 500, verbose = interactive(), ...) {
+    require("cluster")
+    # If 'pam1' was chosen, use this internally defined call to pam
+    if (FUNcluster == "pam1") {
+        FUNcluster = function(x, k) list(cluster = pam(x, k, cluster.only = TRUE))
+    }
+    # Use the scores function to get the ordination coordinates
+    x = phyloseq:::scores.pcoa(ord, display = type)
+    # If axes not explicitly defined (NULL), then use all of them
+    if (is.null(axes)) {
+        axes = 1:ncol(x)
+    }
+    # Finally, perform, and return, the gap statistic calculation using
+    # cluster::clusGap
+    clusGap(x[, axes], FUN = FUNcluster, K.max = K.max, B = B, verbose = verbose, 
+        ...)
+}
+
+
+plot_clusgap = function(clusgap, title = "Gap Statistic calculation results") {
+    require("ggplot2")
+    gstab = data.frame(clusgap$Tab, k = 1:nrow(clusgap$Tab))
+    p = ggplot(gstab, aes(k, gap)) + geom_line() + geom_point(size = 5)
+    p = p + geom_errorbar(aes(ymax = gap + SE.sim, ymin = gap - SE.sim))
+    p = p + ggtitle(title)
+    return(p)
+}
+
+gs = gap_statistic_ordination(exord, "pam1", B = 50, verbose = FALSE)
+```
+
+```{r GapStatisticPlot}
+print(gs, method = "Tibs2001SEmax")
+plot_clusgap(gs)
+```
+
+
+
+
+
+
+Ordination as done in Nature Paper: drop 9 outliers
+====================================================
+
+```{r Nature}
+require(ade4)
+data = as(otu_table(ps_data), "matrix")
+data = data[-1, ]
+clus=sample_data(ps_data)$Enterotype
+data123=data[,-which(clus==0)]
+data.dist123=dist.JSD(data123)
+obs.pcoa=dudi.pco(data.dist123,scannf=F,nf=3)
+s.class(obs.pcoa$li, grid=F,fac=clus[-which(clus==0)])
+```
+
+
+Compare to figure in the paper
+--------------------------------
+
+![EnterotypeFigure](/Users/susan/Dropbox/images/EnterotypeBCA.png)
+
+This was actually made by creating new axes by using
+a supervised method (between group analyses) to polarize the
+clustering effect.
+
+
+Abritrary Choice of Underlying structure?
+-------------------------------------------
+```{r, echo=FALSE}
+reorder=c(8,7,21,2,15,5,23,14,26,25,4,22,19,1,10,28,11,9,20,13,16,3,18,17,27,32,12,29,31,24,6,30)
+newvar=order(reorder)
+
+```
+
+Is a Gradient better?
+-----------------------
+Could have tested the ordering gradient and found it significant, why use an underlying categorical variable?
+
+
+
+Is the underlying variable a categorical one?
+-----------------------------------------------
+
+```{r}
+dist123.mst=mstree(data.dist123,1)
+s.label(obs.pcoa$li, clab = 0, cpoi = 2, neig = dist123.mst, cnei = 1)
+```
+
+We could clean up the graphical representation:
+```{r}
+obs.pcoa2=dudi.pco(data.dist123,scannf=F,nf=2)
+pcoa.mst=mstree(dist(obs.pcoa2$li),1)
+s.label(obs.pcoa2$li, cpoi = 2, neig = pcoa.mst, cnei = 1,label=paste(newvar),boxes=F)
+```
+
+You could even test the gradient
+---------------------------------
+```{r}
+require(vegan)
+newvarm=as.matrix(newvar)
+res=adonis(data.dist123~newvarm,perm=99999)
+res
+```
+
+
+![Beware](http://bios221.stanford.edu/book/images/devil.png){width="20%"} **This is not a valid way of doing analyses, ie look at the data, then test on the same data.**
+
+
+
+# How many ways ??
+
+How many different choices did we make along the way, let's count:       
+  - Choose the data transformation (here proportions replaced the original counts). 
+ ... log, rlog, subsample, prop, orig.
+  - Take a subset of the data, some samples declared as outliers.       
+ ... leave out 0, 1, 2 ,..,9, + criteria (10)......          
+  -        Filter out certain taxa (unknown labels, rare, etc...)         
+ ... remove rare taxa (threshold at 0.01\%, 1\%, 2\%,...)      
+  -        Choose a distance.         
+ ... 40 choices in vegan/phyloseq.      
+  -        Choose an ordination method  and number of coordinates.        
+ ... MDS, NMDS, k=2,3,4,5..       
+  -        Choose a clustering method, choose a number of clusters.          
+  ... PAM, KNN, density based, hclust ...        
+  -        Choose an underlying continuous variable (gradient or group of variables: manifold).       
+  -        Choose a graphical representation.   
+
+
+One answer:    
+
+$$5\times 100 \times 10 \times 40 \times 8 \times 16 \times 2 \times 4 = 204,800,000$$
+
+

@@ -1,0 +1,216 @@
+---
+title: "Lecture/Lab on Analyses that include trees and graphs"
+author: "Susan Holmes"
+date: "7/29/2019"
+output: 
+   slidy_presentation:
+     fig_width: 6
+     fig_height: 5
+     fig_retina: 1
+     keep_md: true
+     smaller: true
+     widescreen: true
+bibliography: 
+  ../Biobook.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+<link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+
+<style type="text/css"> 
+.small-code pre code {
+  font-size: 1.5em;
+}
+
+pre.sourceCode, code.sourceCode {
+   font-size: 90%;
+}
+
+body{
+  font-family: Lato;
+  font-size: 22pt;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.2;
+}
+h1{
+  font-family: Lato;
+  font-size: 32pt;
+  color: #0080FF;
+}
+h2,h3,h4,h5,h6{
+  font-family: Lato;
+  font-size: 24pt;
+  color: #0080FF;
+}
+b, strong {
+ color: #0080FF;
+}
+.main-container {
+  max-width: 1800px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height:1.1;
+}
+</style>
+
+
+# Plotting the tree with the diagnosis variable associated
+
+```{r}
+library(phyloseq)
+library(ggplot2)
+data(GlobalPatterns)
+```
+
+```{r}
+GP <- prune_taxa(taxa_sums(GlobalPatterns) > 0, GlobalPatterns)
+GP.chl <- subset_taxa(GP, Phylum=="Chlamydiae")
+plot_tree(GP.chl, color="SampleType", shape="Family", label.tips="Genus", size="Abundance") + ggtitle("tree annotation using phyloseq")
+```
+
+This is a bit of a mess, let's try to reduce the bootstrap numbers to two simple decimals.
+
+
+```{r}
+phy_tree(GP.chl)
+str(phy_tree(GP.chl))
+```
+
+```{r}
+phy_tree(GP.chl)$node.label = substr(phy_tree(GP.chl)$node.label, 1, 4)
+```
+
+```{r}
+plot_tree(GP.chl, nodelabf=nodeplotboot(), color="SampleType", ladderize="left")
+```
+
+```{r}
+plot_tree(GP.chl, nodelabf=nodeplotboot(), ladderize="left", color="SampleType", shape="Family")
+```
+
+
+### The esophagus dataset.
+
+A simple dataset containing tree and OTU-table components.
+
+The esophagus is a small and relatively simple dataset by moderns standards. It only contains 3 samples, no sample-data, and a modest quantity of total sequencing per sample that is a relic of an earlier time when resources for this sort of investigation were sparse and sequencing was expensive. Nevertheless, it makes for a nice sized dataset to start displaying trees. (For more details about the dataset and its origin, try entering `?esophagus` into the command-line once you have loaded the phyloseq package)
+
+
+The default tree without any additional parameters is plot with black points that indicate in how many different samples each OTU was found. In this case, the term “OTU” is used quite loosely (it is a loose term, after all) to mean entries in the taxononmic data you are plotting; and in the specific case of trees, it means the tips, even if you have already agglomerated the data such that each tip is equivalent to a rank of class or phylum.
+
+plot_tree(esophagus, title="Default tree.")
+
+
+### Radial Tree
+
+Making a radial tree is easy with ggplot2, simply recognizing that our vertically-oriented 
+tree is a cartesian mapping of the data to a graphic – and that a radial tree is the same mapping, but with polar coordinates instead.
+
+```{r}
+data(esophagus)
+plot_tree(esophagus, color="Sample", ladderize="left") + coord_polar(theta="y")
+```
+
+
+## A graph/network based test
+
+
+
+
+
+
+
+# Using the phylogenetic tree combined with abundances
+
+
+## Double Principal Coordinate Analysis (DPCOA)
+
+```{r}
+library(adaptiveGPCA)
+library(ggplot2)
+library(phyloseq)
+data(AntibioticPhyloseq)
+theme_set(theme_bw())
+```
+
+# Antibiotic stress data
+
+
+Defthelsen and Relman (2011) did a longitudinal analysis of 3 patients
+who were given two courses of antibiotics.
+
+Measurements of about 2500 different bacterial OTUs from stool samples of three patients (D, E, F)
+
+Each patient sampled $\sim$ 50 times during the course of treatment with ciprofloxacin (an antibiotic).
+
+Times categorized as Pre Cp, 1st Cp, 1st WPC (week post cipro), Interim, 2nd Cp, 2nd WPC, and Post Cp.
+
+
+
+----
+
+
+## Simple DPCoA output
+
+Using the tree completely to define the distances between taxa.
+
+![DPCOA](http://bios221.stanford.edu/book/images/antibiotic-dpcoa.png){width="60%"}
+
+
+
+## Prepare the Antibiotic Stress Data
+
+```{r}
+pp = processPhyloseq(AntibioticPhyloseq)
+```
+
+
+----
+
+## Double Principal Coordinate Analysis 
+
+Pavoine, Dufour and Chessel (2004), Purdom (2010) and Fukuyama et al. (2011).
+ 
+Suppose we have n species in p locations and a (Euclidean) matrix $\Delta$ giving the squares of the pairwise distances between the species on the tree. Then we can     
+  - Use the distances between species to find an embedding in
+$n -1$ -dimensional space such that the euclidean distances between the species is the same as the distances between the species defined in $\Delta$.        
+  -  Place each of the p locations at the barycenter of its species profile. The euclidean distances between the locations will be the same as the square root of the Rao dissimilarity between them.        
+  -  Use PCA to find a lower-dimensional representation of the locations.
+
+Give the species and communities coordinates such that the inertia decomposes the same way the diversity does.
+
+
+----
+
+
+```{r}
+out.agpca = adaptivegpca(pp$X, pp$Q, k = 2)
+out.agpca 
+plot(out.agpca)
+```
+
+----
+
+## Experiment with the full range of possible amounts of regularization.
+
+
+```{r, eval=FALSE}
+out.ff = gpcaFullFamily(pp$X, pp$Q, k = 2)
+out.agpca = visualizeFullFamily(out.ff,
+                    sample_data = sample_data(AntibioticPhyloseq),
+                    sample_mapping = aes(x = Axis1, y = Axis2, color = type),
+                    var_data = tax_table(AntibioticPhyloseq),
+                    var_mapping = aes(x = Axis1, y = Axis2, color = Phylum))
+```
+
+
+[Vignette for adaptive GPCA ](https://cran.r-project.org/web/packages/adaptiveGPCA/vignettes/adaptive_gpca_vignette.html)
+
+

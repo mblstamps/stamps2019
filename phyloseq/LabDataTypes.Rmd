@@ -1,0 +1,494 @@
+---
+title: "Data types"
+author: "Susan Holmes"
+output:
+  BiocStyle::html_document:
+    number_sections: no
+    toc: yes
+    toc_depth: 4
+    toc_float: true
+---
+
+## R basic data types
+
+```{r}
+letters
+letters[1:6]
+1:6
+c(2,3,7,8)
+```
+
+
+## Basic type:Data structures: vectors
+
+We have already seen examples of vectors we created using the 
+`c()` that combines values:
+
+```{r}
+fib <- c(0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987)
+class(fib)
+is.vector(fib)
+```
+
+How many elements do you think there are in `c(fib,fib)` ?    
+We can also combine elements in the middle:
+
+
+```{r}
+fib5fib <- c(fib,5,fib)
+fib5fib
+```
+
+Let's try some operations on fib:
+```{r}
+fib+10
+fib*10
+```
+Try these commands out:
+```{r}
+fib5fib+c(1,10,100,1000,10000)
+fib+c(1,100)
+```
+
+**Question:**
+Can you explain how R is trying to add vectors of different lengths?
+
+Answer:
+In fact to do operation between unequal lengthed vectors, R tries to recycle values to make the operations work, this can cause confusion
+when it goes ahead and does things when you really made a typing error.
+
+**Question:**
+Try out different operations on vectors:
+ - "/","+","^2","log","exp","cos",...
+
+## Indexing vectors
+We saw that the number `[1]` appears as the first index of the vector on the left.
+We use the indexing to reach certain elements of the vector.
+R indices start at 1.
+
+```{r}
+fib[1]
+fib[4]
+fib[3:5]
+```
+
+ We can access only certain elements given by
+indices in their own vector, for instance c(1,3,5)
+
+```{r}
+fib[c(1,3,5)]
+```
+
+A negative index means take out that value from the vector:
+
+```{r}
+fib[-2]
+```
+
+## Taking a random subset of a vector
+
+```{r}
+vec4 <- 4:32
+length(vec4)
+sample(vec4,size=10)
+sample(vec4,size=10)
+```
+
+`sample` takes a random subset of the input,
+here the vector `vec4`
+
+**Question**
+Why do the two calls to the same function with
+the same input and arguments give two different answers?
+
+
+## Many variables measured on individuals: matrices
+
+R was created so we can easily manipulate, summarize and visualize data.
+The first structure that allows us to group together several measurements
+on the same people/animals/samples are matrices.
+
+(Here we have interjected a few comments in the code using the `#` character.)
+We create a matrix with the `matrix` function.
+
+```{r}
+  A <- matrix( 
+   c(4,2,0,3,1,7,2,8,4,5),    # the data elements 
+   nrow=2,                 # number of rows 
+   ncol=5)                 # number of columns 
+A
+```  
+ 
+You can check what type of object
+A is by asking R
+```{r}
+class(A)
+mode(A)
+is.matrix(A)
+is.vector(A)
+is.numeric(A)
+```
+Matrices have to have all its entries of the same mode.
+
+Q: A vector also has to have homogeneous entries, it's not always obvious, try
+typing `c(letters[3],4,6,letters[7])`
+what do you notice?
+
+```{r}
+matlet <- matrix(letters,ncol=26,nrow=5)
+matlet
+```
+```{r}
+matlet <- matrix(letters,ncol=26,nrow=5,byrow=TRUE)
+matlet
+dim(matlet)
+nrow(matlet)
+ncol(matlet)
+```
+
+You see that by default the function matrix takes a vector and fills in the data
+column by column., in order to change that you have put a special byrow=TRUE argument.
+
+Now is a good time to revist the help to understand how to read the default arguments.
+```{r}
+?matrix
+```
+
+Q: Where do you see the default value of the argument byrow ?
+
+## Accessing Matrix elements
+
+Matrices are sometimes called two dimensional arrays.      
+The rows of a matrix are the first index, the columns are the second.      
+Now suppose we want to replace the forth column of A by two 1's.       
+First take a look at the current values:
+```{r}
+A[,4]
+```
+
+Strangely the column has become a row ? This is because all vectors appear as row vectors
+to save space.
+
+Now we replace the values by 1:
+```{r}
+A[,4] <- 1
+A
+```
+
+Transposition
+```{r}
+t(A)
+```
+The transpose of the matrix A has the number of rows equal to the number of columns of A,
+so what do you think `dim(t(A))` will be?
+
+## Data Matrices
+
+In real situations matrices represent data where the rows are the observations and
+the columns are the variables.
+
+```{r}
+observNames <- c("H1","H3","H4","H5","H7","H8","H9")
+vecHapl <- c(14,12,4,12,3,10,8,10,1,4,15,13,0,1,1,15,13,4,13,3,9,8,10,1,4,13,12,0,1,1,
+15,11,5,11,3,10,8,10,1,4,11,14,0,1,1,17,13,4,11,3,10,7,10,1,4,14,12,0,1,1,
+13,12,5,12,3,11,8,11,1,4,14,14,0,1,1,16,11,5,12,3,10,8,10,1,4,11,15,0,1,1,
+16,11,5,11,3,10,8,10,1,4,11,14,0,1,1)
+matHap <- matrix(vecHapl,nrow=7,byrow=TRUE)
+rownames(matHap) <- observNames
+```
+
+
+Suppose I also want to name the columns and type:
+```
+POSnames <- c(DYS19,DXYS156Y,DYS389m,DYS389n,DYS389p,DYS389q,DYS390m,
+DYS390n,DYS390p,DYS390q,DYS392,DYS393,YAPbcbc,SRY1532bb,92R7bb)
+```
+
+**Question:** Why does this create an error?
+
+```{r}
+POSnames <- c("DYS19","DXYS156Y","DYS389m","DYS389n","DYS389p",
+              "DYS389q","DYS390m","DYS390n","DYS390p","DYS390q",
+              "DYS392","DYS393","YAPbcbc","SRY1532bb","92R7bb")
+colnames(matHap) <- POSnames
+matHap
+```
+Each row of matHap corresponds to a person, whose ID starts with 'H' and each columns represents a special
+position on the Y chromosome where repeats can occur, the numbers are the number of repeats, so they
+are integers.
+
+
+```{r}
+plot(matHap)
+```
+
+By default `plot` makes a scatter plot of the first two columns of matHap.
+
+## Saving matrices
+
+We can save our data to a simple text file for later use in various ways:
+
+As an R object:
+```{r}
+save(matHap,file="matHap.RData")
+```
+
+As a plain text file:
+```{r}
+write.table(matHap, file="matHap.txt")
+# Take a look at the file
+file.show("matHap.txt")
+```
+
+You can't look at an `.RData` file because they are not text files
+but compressed binary versions of the information, so humanly unreadable,
+although later we will be able to load the data just by typing
+```
+load("matHap.RData")
+```
+
+**Question:**  Why do we need quotes within the brackets here?
+
+    
+
+
+[Hadley Wickham's extensive documentation](http://adv-r.had.co.nz/Data-structures.html)
+
+
+
+## Saving and loading your objects
+
+When you run a pipeline or analysis, it is convenient to save the objects such as matrices or dataframes. By doing so, you won't have to run your analysis every single time you want to view the object in question.
+In order to save an object the function `saveRDS` can be used. The object can then be opened with the `readRDS` function. This pair of functions are an alternative to the `save` and `load`. Their adventage is to allow the user to give a new name to the saved object when they load it.  
+
+```{r save , eval=FALSE}
+mat <- matrix(sample(0:1, 12, replace=TRUE),3,4) # A 3 by 4 matrix containing 0s and 1s
+saveRDS(mat, "Neo") # Save mat with Neo as a file name 
+the.matrix <- readRDS("Neo") # Load the file Neo but it will no longer be named mat but the.matrix in your environment
+identical(mat, the.matrix ) # Checks if mat and my.matrix are identical
+```
+
+
+# Heterogeneous Data: list and data.frame
+
+## Lists
+ A completely heterogeneous set of objects of different
+ types and different sizes can be combined into a list.
+ 
+ We cannot use the `c()` function but have an equivalent,
+ simply the `list()` function, which creates this
+ordered collection of components. 
+
+```{r}
+A <- matrix( c(4,2,0,3,1,7,2,8,4,5), nrow=2,ncol=5) 
+Atypical <- list(name="Susan", byDate=1125, Amatrix=A, size=5.5, urban=FALSE)
+Atypical
+```
+
+## Addressing elements of a `list`
+
+We access the elements of the list either by the number
+in the order of the elements:
+```{r}
+Atypical[[1]]
+class(A[[3]])
+is.logical(Atypical[[5]])
+Atypical[[5]]
+```    
+
+We can also access the list elements by their label
+using the `$` sign:
+```{r}
+Atypical$byDate
+Atypical$A
+```
+
+We can ask to see information about a list using either
+`summary` or `str`
+
+```{r}
+summary(Atypical)
+str(Atypical)
+```
+
+We see that  summary describes `Atypical$A` with a length attribute equal
+to 10.
+
+
+## Lists as output
+
+Lists are often used as the output of a complicated function
+that gives parameters and results of different dimensions as output.
+Most lists have names for the components, otherwise we
+can acess them in order with a double square bracket
+
+```{r}
+ result <- lm(weight~height, data=women)
+ names(result)
+ result[[1]]
+```
+
+
+## Factor variables
+
+Some variables are encoded as numbers when in fact these numbers are 
+themselves meaningless codes. 
+
+For instance we might have a class of 13 male and 11 female students,
+we could code this using the `rep` function that repeats
+a value a certain number of times
+```{r}
+studentg=c(rep(1,13),rep(2,11)) 
+table(studentg)
+```
+
+A better solution is to encode the variable gender as a `factor`.
+```{r}
+gender=factor(c(rep("M",13),rep("F",11)))
+gender
+class(gender)
+table(gender)
+levels(gender)
+str(gender)
+length(gender)
+```
+
+
+
+## R Data set example: UScereal
+
+Let's start with an example
+using the Datasets already available in R.
+
+In the `UScereal` data from the MASS package, the
+maker is
+represented by its first initial: G=General Mills, K=Kelloggs, N=Nabisco, P=Post, Q=Quaker Oats, R=Ralston Purina.
+
+```{r}
+library(MASS)
+?UScereal
+UScereal[1:4,1:5]
+table(UScereal[,1])
+summary(UScereal[,1])
+```
+
+
+
+So it is rectangular like a matrix, but some variables are numeric and others are factors.
+
+
+The first variable is an example of a factor variable.
+It is because of these different classes of variables that exist
+often together as information on the same observations
+that R needs a richer data structure than vectors, arrays and matrices. 
+
+
+## data.frame: A way of combining different type of variables
+
+A data.frame is a list that contains many variables,
+they can be considered to be in the columns of a table,
+we won't call this a matrix because the columns can have different types.
+Let's revisit the `UScereal` data.
+
+We can access the 11th variable as we would in a matrix, 
+this is a factor variable,
+so a good summary is to tabulate it with a `table` function.
+```{r}
+table(UScereal[,11])
+```
+
+But we could also have used the variable name:
+
+```{r}
+table(UScereal$vitamins)
+```
+
+```{r}
+class(UScereal)
+str(UScereal)
+summary(UScereal)
+```
+
+**Question**
+What has the function `summary` shown about the data `UScereal`?
+The `data.frame` structure or class is a list, we can access
+the variables using their names as well as using the order
+they appear in the data. 
+
+**Question**
+Which of the variables in the `UScereal` data.frame are factors. 
+
+```{r}
+dim(UScereal)
+```
+**Question**
+We can use the function `dim` on a data.frame to find out
+how many variables were measured on how many
+observations, what other data type can we use `dim` on ?
+
+If we only want to look at the top few
+observations we can use the function `head`
+```{r}
+head(UScereal)
+```  
+
+## Some functions know how to behave, whatever the data.
+
+Here is an example of data from the `datasets` package
+
+```{r}
+library(datasets)
+women
+class(women)
+dim(women)
+plot(women)
+```
+
+We can change the data class.
+
+Sometimes we may need to go back to matrices, this can be quite easy as is the reverse:
+```{r}
+matw=as.matrix(women)
+class(matw)
+women2=as.data.frame(matw)
+class(women2)
+```
+
+But sometimes it can give surprising results;        
+**Question:** Try typing
+```
+as.matrix(UScereal)
+```
+and  explain what you see.
+
+
+## Summary of our session     
+
+ -  We have learned how to create vectors both with `c()` and with `:` and how some operators work.      
+ -  We saw that they are one dimensional with one index that we can use to access
+    particular elements, we can also make a subvector by leaving out some elements using the `-`.     
+ -  We saw how to take a random sample of elements from a vector.    
+ -  We then saw how to create and use Matrices, which have all their cells of the same
+   mode or type (we saw all numeric and all character, they could also all be logical).       
+ -   We saw how to name rows and columns and how to access certain elements with the double indices.    
+ -   The `plot` function understands what to do with a matrix.            
+ -   Matrices are two dimensional arrays (row and columns), there are actually higher dimensional arrays in R.    
+  -  We have learned several new data structures: lists and data.frames.      
+  -  We used more extensive addressing than in matrices, instead of [2,3],
+  we saw [[1]] and `$label` addresses.
+  -  We learned of a new type of variable: `factor`
+  -  Some functions we have encountered:      
+              summary() head()
+              factor() levels() table()          
+              as.matrix()         
+              as.data.frame()    
+              library()
+              length()
+  -  Note that  many functions that we have seen work on different classes of data structures, they
+     adapt to the data structure to give an answer.
+
+**Question**
+The dataset `mtcars` is very popular as an example in R tutorials available online.
+Look at the data frame and find out if it has any variables that are factors
+     
+     

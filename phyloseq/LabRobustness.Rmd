@@ -1,0 +1,201 @@
+---
+title: "Lecture/Lab on Robust Data Analyses"
+author: "Susan Holmes"
+date: "7/29/2019"
+output:
+  BiocStyle::html_document:
+    number_sections: no
+    toc: yes
+    toc_depth: 4
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+#  Robust, nonparametric methods 
+
+![John Tukey](http://bios221.stanford.edu/images/tukey.jpg){width="70%"}
+
+
+John Tukey was an applied statistician who invented **Exploratory Data Analysis**.    
+He also defined and studied the notion of Robustness.
+
+
+
+
+
+----
+
+
+## An Example: Kostic study of colorectal carcinoma
+
+
+Genomic analysis identifies association of Fusobacterium with colorectal carcinoma. Kostic, A. D., Gevers, D., Pedamallu, C. S., Michaud, M., Duke, F., Earl, A. M., et al. (2012). Genome research, 22(2), 292-298.
+
+```{r, kostic}
+library(phyloseq)
+filepath = system.file("extdata", "study_1457_split_library_seqs_and_mapping.zip", package="phyloseq")
+kostic = microbio_me_qiime(filepath)
+kostic
+head(sample_data(kostic)$DIAGNOSIS, 10)
+```
+
+### A little preprocessing
+
+Tabulate the levels of the `DIAGNOSIS` variable:
+
+```{r}
+table(sample_data(kostic)$DIAGNOSIS)
+```
+
+We want to remove the 5 samples that had no DIAGNOSIS attribute assigned. 
+
+These introduce a spurious third design class that is actually a rare artifact in the dataset. 
+
+
+
+```{r}
+kostic <- subset_samples(kostic, DIAGNOSIS != "None")
+```
+
+Let's explore the sample depths first and make a few
+exploratory plots of their variation:
+
+```{r}
+sample_sums(kostic)
+summary(sample_sums(kostic))
+```
+
+
+
+We want to remove samples with less than 500 reads (counts). Note that this kind of data cleanup is useful, necessary, and should be well-documented because it can also be dangerous to alter or omit data without clear documentation. 
+
+```{r}
+kostic <- prune_samples(sample_sums(kostic) > 500, kostic)
+kostic
+sample_sums(kostic)
+summary(sample_sums(kostic))
+```
+
+### A tidy trick (using the pipe operator `%>%`)
+
+```{r}
+library(dplyr)
+sample_sums(kostic) %>% summary()
+```
+
+
+###  How many nonzero elements in the matrix ?
+
+```{r}
+sum(otu_table(kostic)>0)
+```
+
+### How many cells have more than 3 reads in the matrix ?
+
+```{r}
+sum(otu_table(kostic)>3)
+```
+
+###  How to make a presence / absence  matrix such that presence is defined as at least 2 reads?
+
+```{r}
+PA = data.frame(otu_table(kostic))
+PA[PA<2] = 0
+PA[PA>1] = 1
+apply(PA,2,sum)
+apply(PA,2,sum) %>% summary()
+```
+
+If we actually want to have a phyloseq object and have 
+a new otu_table with only presence absence, we do the following.
+
+```{r}
+kMat <- kostic %>% otu_table %>% as("matrix")
+PA <- ifelse(kMat > 1, 1, 0) %>% otu_table(taxa_are_rows = TRUE)
+```
+
+# Robust methods
+
+[Wikipedia entry](https://en.wikipedia.org/wiki/Robust_statistics)
+
+## Use rankings instead of values.
+
+What is the highest ranking in the following vector?
+
+```{r}
+tt = sample(100,19)
+tt
+rank(tt)
+```
+
+We can replace the most abundant by a ranking score where
+a high ranking corresponds to an abundant taxon.
+
+
+```{r}
+abund <- otu_table(kostic)
+abund[1:5,1:8]
+abund_ranks <- apply(abund, 2, rank)
+abund_ranks[1:5,1:8]
+```
+
+**Question**: We are going to replace the lower rankings by a tie at 1, why would we do this?
+
+```{r}
+abund_ranks <-abund_ranks - 2000
+abund_ranks[abund_ranks < 1] <- 1
+abund_ranks[1:5,1:8]
+```
+
+
+
+
+Plug the rankings to replace the original abundances in the phyloseq object:
+
+
+```{r}
+kostica <-kostic
+otu_table(kostica) <- otu_table(abund_ranks,taxa_are_rows=TRUE)
+```
+
+
+## Perform a simple Wilcox test on some of the taxa-rows
+
+```{r}
+tab2 <- abund_ranks[c(2008,2315,1886, 733, 816, 1481),]
+diagnosis=as.factor(sample_data(kostic)$DIAGNOSIS)
+```
+
+```{r}
+x <- tab2[1,]
+wilcox.test(x ~ diagnosis,
+            alternative ="two.sided")
+wilcox.test(tab2[4,] ~ diagnosis,
+            alternative ="two.sided")
+
+```            
+
+
+Multiple testing correction can be done using the `multtest` Bioconductor
+package:
+
+
+```{r,eval =FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("multtest")
+```
+
+For a tutorial showing how to use a more refined normalisation of this data set,
+see the [DESeq2 example here](https://joey711.github.io/phyloseq-extensions/DESeq2.html)
+
+
+
+
+
+
