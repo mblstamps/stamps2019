@@ -22,8 +22,9 @@ You will now see the version and command line options for MEGAHIT.  Note that ME
 Now, download some data to try on an assembly ::
 
    cd
-   mkdir data
-   #Mike's figshare get command here"
+   curl -LO https://ndownloader.figshare.com/files/16611230
+   tar -xzvf data.tar.gz
+   cd data/
 
 Now, run the assembler! ::
 
