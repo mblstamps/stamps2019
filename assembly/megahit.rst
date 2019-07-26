@@ -8,14 +8,13 @@ good assembler designed for metagenomes.
 First, install it::
 
    cd
-   conda install -c bioconda megahit 
+   conda install -c bioconda -y megahit 
 
-When asked to proceed, type 'y'.  MEGAHIT will then proceed to install and store its commands in such a way that you can access it.
+MEGAHIT will then proceed to install and store its commands in such a way that you can access it.
 
 Try typing::
 
    megahit
-
 
 You will now see the version and command line options for MEGAHIT.  Note that MEGAHIT is looking for paired-end reads and a specified output directory.  
 

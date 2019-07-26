@@ -97,4 +97,4 @@ Some handy quality and/or adapter trimming tools you might want to investigate a
    3. [sickle](https://github.com/najoshi/sickle) - read quality trimming
    4. [scythe](https://github.com/vsbuffalo/scythe) - adapter contamination trimming
 
-
+Next: [Assembly!](megahit.rst)
