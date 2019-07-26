@@ -22,7 +22,7 @@ You will now see the version and command line options for MEGAHIT.  Note that ME
 Now, download some data to try on an assembly ::
 
    cd
-   curl -LO https://ndownloader.figshare.com/files/16611230
+   curl -o data.tar.gz -L https://ndownloader.figshare.com/files/16611230
    tar -xzvf data.tar.gz
    cd data/
 
