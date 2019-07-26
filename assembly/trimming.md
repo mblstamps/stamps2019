@@ -28,16 +28,14 @@ As always, you want to make sure you read the manual of any tool to be sure you 
 
 The first step to starting an assembly or metagenomic read analysis is to remove bad quality sequences, a process we call quality trimming.  We'll start a cloud compute instance and practice trimming bad quality reads.
 
-*Start your STAMPS instance.*
+*Connect to your STAMPS instance and open up a shell prompt.*
 
 Install Trimmomatic - a program to quality trim reads
 ```
-cd 
-curl -O http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.38.zip
-unzip Trimmomatic-0.38.zip
+conda install -c bioconda -y trimmomatic
 ```
 
-Download the data (You did on last session): The tutorial data is from [Sharon et al. 2013](http://www.ncbi.nlm.nih.gov/pubmed/22936250); it’s two data points from an infant gut sample. And it is a subsampled file so that we can do this tutorial in some reasonable amount of time, 100,000 sequences. Go to the home directory, make a directory named `metagenome`, change directores into the folder, download data, then unzip the data or decompress the data file. 
+Download the data: The tutorial data is from [Sharon et al. 2013](http://www.ncbi.nlm.nih.gov/pubmed/22936250); it’s two data points from an infant gut sample. And it is a subsampled file so that we can do this tutorial in some reasonable amount of time, 100,000 sequences. Go to the home directory, make a directory named `metagenome`, change directores into the folder, download data, then unzip the data or decompress the data file. 
 ```
 cd
 mkdir metagenome
@@ -53,12 +51,21 @@ For this dataset, we happen to know that our adapters are those in TruSeq3-PE-2.
 
 Now, let's get to trimming.  To shorten this tutorial, let's trim only a few files to exemplify how we would do trimming.
 
+First, copy in the TruSeq paired-end sequencing adapters:
+
 ```
-java -jar ../Trimmomatic-0.38/trimmomatic-0.38.jar PE SRR492065_1.sub.fastq.gz SRR492065_2.sub.fastq.gz SRR492065.r1.pe SRR492065.r1.se SRR492065.r2.pe SRR492065.r2.se ILLUMINACLIP:../Trimmomatic-0.38/adapters/TruSeq3-PE-2.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
+cp /opt/miniconda3/pkgs/trimmomatic-*/share/trimmomatic-*/adapters/TruSeq2-PE.fa .
+```
+
+Now, run Trimmomatic:
+```
+trimmomatic PE SRR492065_1.sub.fastq.gz SRR492065_2.sub.fastq.gz \
+    SRR492065.r1.pe SRR492065.r1.se SRR492065.r2.pe SRR492065.r2.se \
+    ILLUMINACLIP:TruSeq2-PE.fa:2:30:10 LEADING:3 TRAILING:3 \
+    SLIDINGWINDOW:4:15 MINLEN:36
 ```
 
 If you look at the Trimmomatic manual, you'll see that this command performs the following:
-This will perform the following:
 
 * Remove adapters
 * Remove leading low quality or N bases (below quality 3) (LEADING:3)
@@ -69,9 +76,20 @@ This will perform the following:
 
 A further breakdown of the command is here:
 
-java: run java program, -jar: run jar program, /usr/local/bin/trimmomatic-0.36.jar: name of the program with path, PE: paired-end, SRR492066_1.sub.fastq.gz: first pared-end, SRR492066_2.sub.fastq.gz: second paired-end, s1_pe: output of first file(paired-end), s1_se: output of first file(single-end), s2_pe: output of second file(paired-end), s2_se: output of second file(single-end), ILLUMINACLIP: use illumina clip, /usr/local/share/adapters/TruSeq2-PE.fa: adapter file with path, 2:30:10 : <seed mismatches(specifies the maximum mismatch count which will still allow a full match to be performed)>:<palindrome clip threshold(specifies how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment.)>:<simple clip threshold(specifies how accurate the match between any adapter etc. sequence must be against a read.)> [Trimmomatic Webpage](http://www.usadellab.org/cms/?page=trimmomatic)
+* trimmomatic: run trimmomatic!
 
-```
+* PE: paired-end,
+* SRR492066_1.sub.fastq.gz: first paired-end
+* SRR492066_2.sub.fastq.gz: second paired-end
+* s1_pe: output of first file(paired-end)
+* s1_se: output of first file(single-end)
+* s2_pe: output of second file(paired-end)
+* s2_se: output of second file(single-end)
+* ILLUMINACLIP: use illumina clip
+* TruSeq2-PE.fa: adapter file
+* 2:30:10 : <seed mismatches(specifies the maximum mismatch count which will still allow a full match to be performed)>:<palindrome clip threshold(specifies how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment.)>:<simple clip threshold(specifies how accurate the match between any adapter etc. sequence must be against a read.)
+
+See the [Trimmomatic Webpage](http://www.usadellab.org/cms/?page=trimmomatic) for more info.
 
 Some handy quality and/or adapter trimming tools you might want to investigate are:   
    1. [Trimmomatic](http://www.usadellab.org/cms/?page=trimmomatic) - all purpose
@@ -79,4 +97,4 @@ Some handy quality and/or adapter trimming tools you might want to investigate a
    3. [sickle](https://github.com/najoshi/sickle) - read quality trimming
    4. [scythe](https://github.com/vsbuffalo/scythe) - adapter contamination trimming
 
-
+Next: [Assembly!](megahit.rst)
