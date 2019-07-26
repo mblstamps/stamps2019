@@ -28,16 +28,7 @@ As always, you want to make sure you read the manual of any tool to be sure you 
 
 The first step to starting an assembly or metagenomic read analysis is to remove bad quality sequences, a process we call quality trimming.  We'll start a cloud compute instance and practice trimming bad quality reads.
 
-1.  Start your STAMPS instance.
-
-**Note:** One of the issues with processing whole genome shotgun data is how long it takes for the computer to process many steps of the workflow.  This can be time consuming and you should consider using ```screen``` or ```tmux``` to ensure that an internet connection issue does not cause you to lose your workflow progress.
-
-
-Install dependencies (required software)
-```
-sudo apt-get update
-sudo apt-get -y install python-dev python-pip fastx-toolkit unzip git zlib1g-dev default-jre
-```
+*Start your STAMPS instance.*
 
 Install Trimmomatic - a program to quality trim reads
 ```
@@ -58,31 +49,25 @@ This dataset contains paired end reads.  The paired end nature of datasets can b
 
 What's the quality of the dataset?  We are going to use the program [Trimmomatic](http://www.usadellab.org/cms/?page=trimmomatic) to both remove reads with a low quality threshold and remove sequencing adapters (non-biological sequences) prior to assembly.
 
-Let's talk about sequencing adapter little more before we run Trimmomatic. When we run Trimmomatic, we are going to tell software which adapter I want to trim. Then, how I know which adapter that I use? First, you can ask sequencing center which adapter they use. Second, if you are a good bioinformatitian, you can figure out yourself. Here is how, there are common adapter sequences are provided in the folder ~/Trimmomatic-0.38/adapters/. You can see six files (NexteraPE-PE.fa,TruSeq2-PE.fa,TruSeq2-SE.fa,TruSeq3-PE-2.fa,TruSeq3-PE.fa,TruSeq3-SE.fa). Then you can figure out which adapter is used by using follow command.
+For this dataset, we happen to know that our adapters are those in TruSeq3-PE-2.fa
+
+Now, let's get to trimming.  To shorten this tutorial, let's trim only a few files to exemplify how we would do trimming.
 
 ```
-grep -f ~/Trimmomatic-0.38/adapters/TruSeq3-PE.fa SRR492065_1.unzip_for_quality.fastq
-```
-This command above does not give you anything, which mean the sequences in the file was not used for adapter in your sample.
-```
-grep -f ~/Trimmomatic-0.38/adapters/TruSeq3-PE-2.fa SRR492065_1.unzip_for_quality.fastq
-```
-This command above gives you many sequences, which means this is likely the correct adapter sequences that you want to use. 
-
-Now, let's get to trimming:
-```
-for x in SRR*_1.sub.fastq.gz;
-do java -jar ../Trimmomatic-0.38/trimmomatic-0.38.jar PE $x ${x%_1*}_2.sub.fastq.gz ${x%_1*}.r1.pe ${x%_1*}.r1.se ${x%_1*}.r2.pe ${x%_1*}.r2.se ILLUMINACLIP:../Trimmomatic-0.38/adapters/TruSeq3-PE-2.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36;
-done 
+java -jar ../Trimmomatic-0.38/trimmomatic-0.38.jar PE SRR492065_1.sub.fastq.gz SRR492065_2.sub.fastq.gz SRR492065.r1.pe SRR492065.r1.se SRR492065.r2.pe SRR492065.r2.se ILLUMINACLIP:../Trimmomatic-0.38/adapters/TruSeq3-PE-2.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
 ```
 
 If you look at the Trimmomatic manual, you'll see that this command performs the following:
 This will perform the following:
 
-Remove adapters 
+Remove adapters
+ 
 Remove leading low quality or N bases (below quality 3) (LEADING:3)
+
 Remove trailing low quality or N bases (below quality 3) (TRAILING:3)
+
 Scan the read with a 4-base wide sliding window, cutting when the average quality per base drops below 15 (SLIDINGWINDOW:4:15)
+
 Drop reads below the 36 bases long (MINLEN:36)
 
 
@@ -90,12 +75,6 @@ A further breakdown of the command is here:
 
 java: run java program, -jar: run jar program, /usr/local/bin/trimmomatic-0.36.jar: name of the program with path, PE: paired-end, SRR492066_1.sub.fastq.gz: first pared-end, SRR492066_2.sub.fastq.gz: second paired-end, s1_pe: output of first file(paired-end), s1_se: output of first file(single-end), s2_pe: output of second file(paired-end), s2_se: output of second file(single-end), ILLUMINACLIP: use illumina clip, /usr/local/share/adapters/TruSeq2-PE.fa: adapter file with path, 2:30:10 : <seed mismatches(specifies the maximum mismatch count which will still allow a full match to be performed)>:<palindrome clip threshold(specifies how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment.)>:<simple clip threshold(specifies how accurate the match between any adapter etc. sequence must be against a read.)> [Here more detail](http://www.usadellab.org/cms/?page=trimmomatic)
 
-To get this ready for an assembler, we want to combine all the R1 pairs, R2 pairs, and orphaned singletons into one file.
-
-```
-cat *.r1.pe > all.r1.fastq
-cat *.r2.pe > all.r2.fastq
-cat *.se > all.single.fastq
 ```
 
 Some handy quality and/or adapter trimming tools you might want to investigate are:   
