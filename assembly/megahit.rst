@@ -18,18 +18,18 @@ Try typing::
 
 You will now see the version and command line options for MEGAHIT.  Note that MEGAHIT is looking for paired-end reads and a specified output directory.  
 
-Now, download some data to try on an assembly::
+Now, download some data to try on an assembly ::
 
-
-----
+   cd
+   mkdir data
+   #Mike's figshare get command here"
 
 Now, run the assembler! ::
-
-   mkdir ~/assembly
-   cd ~/assembly
-   ln -fs ../data/*.subset.pe.fq.gz .
-
-   ~/megahit/megahit --12 example.R1.fastq, example.R2.fastq
+   cd
+   mkdir assembly
+   cd assembly
+   mv ~/data/example*fastq .
+   megahit --12 example.R1.fastq, example.R2.fastq
 
 This will take about 5-10 minutes; at the end you should see output like
 this::
@@ -68,6 +68,7 @@ First, let's make are blast index database file from our reference database, ref
    mkdir blast
    cd blast
    cp ~/data/ref.fa .
+   cp ~/data/*fasta .
    makeblastdb -in ref.fa -dbtype nucl
 
 Let's run a blast ::
