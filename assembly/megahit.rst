@@ -85,7 +85,7 @@ Let's take a look at this file together.  First, this is a nice (key)[!http://ww
 
 What can we see in this output?
 
-**Note, use BLAST settings with `[caution] <https://academic.oup.com/bioinformatics/article/35/9/1613/5106166>`
+**Note, use BLAST settings with `[caution] <https://academic.oup.com/bioinformatics/article/35/9/1613/5106166>`_
 
 Let's say that you have some reference genomes to compare to and would like to know the rperesentation of the contigs in these genomes.  These three genomes are NC_003112.2, NC_004310.3, NC_009089.1 -- three well known pathogens.  Let's format each genome into a blast database and run three different blasts against our assembly.  
 
