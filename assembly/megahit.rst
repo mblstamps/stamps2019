@@ -100,7 +100,7 @@ Let's give this a try ::
 
    for x in NC*fasta; do echo $x; done
 
-In this case, the echo command just "echos" the variable x within the for-loop.  We can change that command to "blastn".
+In this case, the echo command just "echos" the variable x within the for-loop.  We can change that command to "blastn". ::
 
    for x in NC*fasta; do makeblastdb -in $x -dbtype nucl; done
    
