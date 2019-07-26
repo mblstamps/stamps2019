@@ -21,16 +21,14 @@ You will now see the version and command line options for MEGAHIT.  Note that ME
 Now, download some data to try on an assembly ::
 
    cd
+   mkdir assembly
+   cd assembly
    curl -o data.tar.gz -L https://ndownloader.figshare.com/files/16611230
    tar -xzvf data.tar.gz
-   cd data/
+   mv data/* .
 
 Now, run the assembler! ::
 
-   cd
-   mkdir assembly
-   cd assembly
-   mv ~/data/example*fastq .
    megahit --12 example.R1.fastq, example.R2.fastq
 
 This will take about 5-10 minutes; at the end you should see output like
@@ -56,32 +54,29 @@ Annotation with BLAST
 
 Install BLAST ::
 
-   curl -O ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.9.0+-x64-linux.tar.gz
-   tar -xvf ncbi-blast+-2.9.0-src.tar.gz
-   sudo cp ncbi-blast-2.9.0+/bin/makeblastdb /usr/local/bin/
+   conda install -y -c bioconda blast
 
 Let's look at two blast commands ::
 
    makeblastdb -h
    blastn -h
 
-First, let's make are blast index database file from our reference database, ref.fa ::
+First, let's make our blast index database file from our reference database, ref.fa ::
 
    mkdir blast
    cd blast
-   cp ~/data/ref.fa .
-   cp ~/data/*fasta .
+   cp ../data/ref.fa .
    makeblastdb -in ref.fa -dbtype nucl
 
 Let's run a blast ::
 
-   blastn -db ref.fa -query megahit_out/final.contigs.fa 
+   blastn -db ref.fa -query ../megahit_out/final.contigs.fa 
 
 AHHHHH!  Press control-C to break that carnage!
 
 Let's try this again, where now we specify a specific output type and filename. ::
 
-   blastn -db ref.fa -query megahit_out/final.contigs.fa -outfmt 6 -out contigs.x.ref.blastnout
+   blastn -db ref.fa -query ../megahit_out/final.contigs.fa -outfmt 6 -out contigs.x.ref.blastnout
 
 Let's take a look at this file together.  First, this is a nice `key <http://www.metagenomics.wiki/tools/blast/blastn-output-format-6>`_ for BLAST outputs in tabular format.
 
