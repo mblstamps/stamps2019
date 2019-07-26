@@ -11,6 +11,7 @@ First, install it::
    conda install -c bioconda megahit 
 
 When asked to proceed, type 'y'.  MEGAHIT will then proceed to install and store its commands in such a way that you can access it.
+
 Try typing::
 
    megahit
@@ -25,6 +26,7 @@ Now, download some data to try on an assembly ::
    #Mike's figshare get command here"
 
 Now, run the assembler! ::
+
    cd
    mkdir assembly
    cd assembly
