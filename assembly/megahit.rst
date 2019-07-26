@@ -49,4 +49,47 @@ At this point we can do a bunch of things:
 * quantify the abundance of the contigs or genes in the assembly, using the original read data set (:doc:`salmon_tutorial`);
 * bin the contigs in the assembly into species bins;
 
+Annotation with BLAST
+---------------------
+
+Install BLAST ::
+
+curl -O ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.9.0+-x64-linux.tar.gz
+tar -xvf ncbi-blast+-2.9.0-src.tar.gz
+sudo cp ncbi-blast-2.9.0+/bin/makeblastdb /usr/local/bin/
+
+Let's look at two blast commands ::
+
+makeblastdb -h
+blastn -h
+
+First, let's make are blast index database file from our reference database, ref.fa ::
+
+mkdir blast
+cd blast
+cp ~/data/ref.fa .
+makeblastdb -in ref.fa -dbtype nucl
+
+Let's run a blast ::
+
+blastn -db ref.fa -query megahit_out/final.contigs.fa 
+
+AHHHHH!  Press control-C to break that carnage!
+
+Let's try this again, where now we specify a specific output type and filename. ::
+
+blastn -db ref.fa -query megahit_out/final.contigs.fa -outfmt 6 -out contigs.x.ref.blastnout
+
+Let's take a look at this file together.  First, this is a nice [key](http://www.metagenomics.wiki/tools/blast/blastn-output-format-6) for BLAST outputs in tabular format.
+
+What can we see in this output.
+
+
+
+
+
+
+
+
+
 
