@@ -72,7 +72,8 @@ Let's run a blast ::
 
    blastn -db ref.fa -query ../megahit_out/final.contigs.fa | less
 
-AHHHHH!  Press control-C to break that carnage!
+Use the spacebar to scroll through -- that's a lot of output! Let's put
+it in a file...
 
 Let's try this again, where now we specify a specific output type and filename. ::
 
@@ -90,6 +91,10 @@ Checking against References
 Let's say that you have some reference genomes to compare to and would like to know the rperesentation of the contigs in these genomes.  These three genomes are NC_003112.2, NC_004310.3, NC_009089.1 -- three well known pathogens.  Let's format each genome into a blast database and run three different blasts against our assembly.  
 
 Wait...this seems like a lot of BLASTING!
+
+Let's got back to the assembly directory -- ::
+
+   cd ../
 
 Let's give this a try ::
 
