@@ -82,7 +82,8 @@ Let's try this again, where now we specify a specific output type and filename. 
 
 Let's take a look at this file together.  First, this is a nice [key](http://www.metagenomics.wiki/tools/blast/blastn-output-format-6) for BLAST outputs in tabular format.
 
-What can we see in this output.
+What can we see in this output?
+
 
 
 
