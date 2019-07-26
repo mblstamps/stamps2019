@@ -81,10 +81,10 @@ A further breakdown of the command is here:
 * PE: paired-end,
 * SRR492066_1.sub.fastq.gz: first paired-end
 * SRR492066_2.sub.fastq.gz: second paired-end
-* s1_pe: output of first file(paired-end)
-* s1_se: output of first file(single-end)
-* s2_pe: output of second file(paired-end)
-* s2_se: output of second file(single-end)
+* SRR492065.r1.pe: output of first file(paired-end)
+* SRR492065.r1.se: output of first file(single-end)
+* SRR492065.r2.pe: output of second file(paired-end)
+* SRR492065.r2.se: output of second file(single-end)
 * ILLUMINACLIP: use illumina clip
 * TruSeq2-PE.fa: adapter file
 * 2:30:10 : <seed mismatches(specifies the maximum mismatch count which will still allow a full match to be performed)>:<palindrome clip threshold(specifies how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment.)>:<simple clip threshold(specifies how accurate the match between any adapter etc. sequence must be against a read.)
