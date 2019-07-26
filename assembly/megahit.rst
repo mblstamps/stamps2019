@@ -81,7 +81,7 @@ Let's try this again, where now we specify a specific output type and filename. 
 
    blastn -db ref.fa -query megahit_out/final.contigs.fa -outfmt 6 -out contigs.x.ref.blastnout
 
-Let's take a look at this file together.  First, this is a nice (key)[!http://www.metagenomics.wiki/tools/blast/blastn-output-format-6] for BLAST outputs in tabular format.
+Let's take a look at this file together.  First, this is a nice `key <http://www.metagenomics.wiki/tools/blast/blastn-output-format-6>`_ for BLAST outputs in tabular format.
 
 What can we see in this output?
 
