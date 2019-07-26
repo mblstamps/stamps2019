@@ -54,9 +54,9 @@ Annotation with BLAST
 
 Install BLAST ::
 
-curl -O ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.9.0+-x64-linux.tar.gz
-tar -xvf ncbi-blast+-2.9.0-src.tar.gz
-sudo cp ncbi-blast-2.9.0+/bin/makeblastdb /usr/local/bin/
+   curl -O ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.9.0+-x64-linux.tar.gz
+   tar -xvf ncbi-blast+-2.9.0-src.tar.gz
+   sudo cp ncbi-blast-2.9.0+/bin/makeblastdb /usr/local/bin/
 
 Let's look at two blast commands ::
 
