@@ -70,7 +70,7 @@ First, let's make our blast index database file from our reference database, ref
 
 Let's run a blast ::
 
-   blastn -db ref.fa -query ../megahit_out/final.contigs.fa 
+   blastn -db ref.fa -query ../megahit_out/final.contigs.fa | less
 
 AHHHHH!  Press control-C to break that carnage!
 
