@@ -1,5 +1,6 @@
 Run the MEGAHIT assembler
 =========================
+Tutorial by Titus Brown, Adina Howe, and Jihoon Yang
 
 `MEGAHIT <https://github.com/voutcn/megahit>`__ is a very fast, quite
 good assembler designed for metagenomes.
