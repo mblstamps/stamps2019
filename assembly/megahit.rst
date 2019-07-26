@@ -83,6 +83,33 @@ Let's take a look at this file together.  First, this is a nice [key](http://www
 
 What can we see in this output?
 
+**Note, use BLAST settings with [caution](https://academic.oup.com/bioinformatics/article/35/9/1613/5106166)
+
+Let's say that you have some reference genomes to compare to and would like to know the rperesentation of the contigs in these genomes.  These three genomes are NC_003112.2, NC_004310.3, NC_009089.1 -- three well known pathogens.  Let's format each genome into a blast database and run three different blasts against our assembly.  
+
+Wait...this seems like a lot of BLASTING!
+
+Let's give this a try ::
+
+   for x in NC*fasta; do echo $x; done
+
+In this case, the echo command just "echos" the variable x within the for-loop.  We can change that command to "blastn".
+
+   for x in NC*fasta; do makeblastdb -in $x -dbtype nucl; done
+   
+You should have 3 indexed databases for each reference file.  How could you do a blast of each database against the contigs?  Give it a try.
+
+Here's the solution, with an extra parameter to speed things up :: 
+
+   for x in NC*fasta; do blastn -db $x -query megahit_out/final.contigs.fa -outfmt 6 -out contigs.x.$x.blastnout -num_threads 6; done
+
+This is a real pro-trick in doing bioinformatics swiftly!
+
+   
+
+
+
+
 
 
 
