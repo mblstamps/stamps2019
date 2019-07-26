@@ -59,7 +59,10 @@ cp /opt/miniconda3/pkgs/trimmomatic-*/share/trimmomatic-*/adapters/TruSeq2-PE.fa
 
 Now, run Trimmomatic:
 ```
-trimmomatic PE SRR492065_1.sub.fastq.gz SRR492065_2.sub.fastq.gz SRR492065.r1.pe SRR492065.r1.se SRR492065.r2.pe SRR492065.r2.se ILLUMINACLIP:TruSeq2-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
+trimmomatic PE SRR492065_1.sub.fastq.gz SRR492065_2.sub.fastq.gz \
+    SRR492065.r1.pe SRR492065.r1.se SRR492065.r2.pe SRR492065.r2.se \
+    ILLUMINACLIP:TruSeq2-PE.fa:2:30:10 LEADING:3 TRAILING:3 \
+    SLIDINGWINDOW:4:15 MINLEN:36
 ```
 
 If you look at the Trimmomatic manual, you'll see that this command performs the following:
