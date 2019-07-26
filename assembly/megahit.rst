@@ -65,7 +65,7 @@ First, let's make our blast index database file from our reference database, ref
 
    mkdir blast
    cd blast
-   cp ../data/ref.fa .
+   cp ../ref.fa .
    makeblastdb -in ref.fa -dbtype nucl
 
 Let's run a blast ::
