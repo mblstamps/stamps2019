@@ -60,25 +60,25 @@ sudo cp ncbi-blast-2.9.0+/bin/makeblastdb /usr/local/bin/
 
 Let's look at two blast commands ::
 
-makeblastdb -h
-blastn -h
+   makeblastdb -h
+   blastn -h
 
 First, let's make are blast index database file from our reference database, ref.fa ::
 
-mkdir blast
-cd blast
-cp ~/data/ref.fa .
-makeblastdb -in ref.fa -dbtype nucl
+   mkdir blast
+   cd blast
+   cp ~/data/ref.fa .
+   makeblastdb -in ref.fa -dbtype nucl
 
 Let's run a blast ::
 
-blastn -db ref.fa -query megahit_out/final.contigs.fa 
+   blastn -db ref.fa -query megahit_out/final.contigs.fa 
 
 AHHHHH!  Press control-C to break that carnage!
 
 Let's try this again, where now we specify a specific output type and filename. ::
 
-blastn -db ref.fa -query megahit_out/final.contigs.fa -outfmt 6 -out contigs.x.ref.blastnout
+   blastn -db ref.fa -query megahit_out/final.contigs.fa -outfmt 6 -out contigs.x.ref.blastnout
 
 Let's take a look at this file together.  First, this is a nice [key](http://www.metagenomics.wiki/tools/blast/blastn-output-format-6) for BLAST outputs in tabular format.
 
