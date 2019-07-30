@@ -356,6 +356,12 @@ Tons of contigs, most of them babies (#babycontigs).
 
 Next comes binning. Woohoo! 
 
+We do need to do one little step to make sure this executes. Atlas got confused as to where some files are, so we need to put them in the spot that atlas will look for them in. (note -- this is a temporary fixed and will not be required usually when running atlas!)
+
+```
+ln -s databases/checkm/* .
+```
+
 
 ```
 atlas run binning -n
