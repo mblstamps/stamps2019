@@ -8,7 +8,7 @@ everything we've covered so far, it depends :)
 But we have to start somewhere! We find that it's 
 generally a good idea to do a "default" workflow. This allows you to start getting to know your data quickly, and to get **a result** quickly. After you have results from the default workflow, you can critically assess whether they make sense in light of your biological problem or whether you need to use different methods to answer your question. You can also measure attrition of information and determine if you need to do something about it. 
 
-There are a lot of steps in a default *de novo* metagenome workflow. Below we have a diagram of each step one would genreally want to take. 
+There are a lot of steps in a default *de novo* metagenome workflow. Below we have a diagram of each step one would generally want to take. 
 
 ![](https://i.imgur.com/yGfZKpw.png)
 
@@ -16,12 +16,12 @@ There are 17 steps! Each of which requires a different tool. That's a lot of too
 
 Instead of orchestrating these 17 tools ourselves, we can put an automated workflow to work for us to do this. We chose to use the [Atlas](https://peerj.com/preprints/2843/) workflow because...it works. Which is actually a sort of high bar for stringing 17 tools together!
 
-## Instance hygeine
+## Instance hygiene
 
 Metagenomics workflows can take up quite a bit of space. We want to make sure that we have enough space and compute power on our instances to execute the whole thing. 
 
-We need three things to run a workflow: harddrive space, ram, and cpus. 
-+ **hard drive space** is phyiscal, persistent storage. We write our files to disk for long term storage
+We need three things to run a workflow: hard drive space, ram, and CPUs. 
++ **hard drive space** is physical, persistent storage. We write our files to disk for long term storage
 + **RAM** is working memory. It temporarily stores all the information that your computer needs to work right that minute. Some tools need to load all of your data into RAM in order to work with it. Assembly is one of these steps -- to assemble something, you need at minimum the amount of RAM as you have in gigabytes of data.
 + **CPUs** are the electronic circuitry within a computer that carries out the instructions of a computer program by performing the basic arithmetic, logic, controlling, and input/output (I/O) operations specified by the instructions [article here](https://en.wikipedia.org/wiki/Central_processing_unit).
 
