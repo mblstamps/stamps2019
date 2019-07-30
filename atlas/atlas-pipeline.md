@@ -276,6 +276,16 @@ These are our quality controlled reads. We also see a file that says `finished_Q
 #### Challenge
 Look inside the contaminants folder. What contaminant was removed by atlas?
 
+#### Rerunning atlas steps
+
+Note that you can rerun `atlas run qc` and (as long as you succeeded the
+first time) atlas won't rerun anything! That's because atlas (and the snakemake
+tool its built on) tracks what's been done and won't rerun anything that
+has suceeded!
+
+If you want to rerun the QC step, you can rename (or remove) the output of the
+atlas step, and rerun `atlas run qc`.
+
 ### Assembly
 
 QC. Done. Yay! Now that our reads are cleaned up and we have removed contaminants, let's assemble. Again, let's do a dry run first to see what steps atlas will run. 
